@@ -34,8 +34,12 @@ function LoginInner() {
   const rawNext = params.get("next");
   const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\") ? rawNext : null;
 
+  // The only place that navigates after sign-in, so a second redirect can't race the first.
   useEffect(() => {
-    if (hydrated && session) router.replace(next ?? (session.role === "admin" ? "/admin" : "/desk"));
+    if (!hydrated || !session) return;
+    const home = session.role === "admin" ? "/admin" : "/desk";
+    const canOpen = next && (session.role === "admin" || !next.startsWith("/admin"));
+    router.replace(canOpen ? next : home);
   }, [hydrated, session, router, next]);
 
   async function submit(e: React.FormEvent) {
@@ -53,9 +57,7 @@ function LoginInner() {
     }
     if (!role) {
       setError(demoHints ? "That email and password do not match. Check the demo logins below." : "That email and password do not match.");
-      return;
     }
-    router.replace(next ?? (role === "admin" ? "/admin" : "/desk"));
   }
 
   return (

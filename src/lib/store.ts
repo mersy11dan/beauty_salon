@@ -251,8 +251,7 @@ function build(set: Set, get: Get, mode: DataMode, content: SiteContent | null):
       if (isLive) {
         const r = await live.opsSignIn(email, password);
         if (!r.ok) return r.error === "setup" ? "setup" : null;
-        set({ session: r.session });
-        await refresh(defaultMonths()).catch(() => undefined);
+        await refresh(defaultMonths()).catch(() => set({ session: r.session }));
         return r.session.role;
       }
       const { accounts } = get();
