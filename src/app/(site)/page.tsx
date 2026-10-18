@@ -4,6 +4,7 @@ import {
   OffersBand,
   PortfolioStrip,
   ReviewsPreview,
+  ScriptMarquee,
   ServicesPreview,
   VisitBlock,
 } from "@/components/site/home-sections";
@@ -12,6 +13,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <ScriptMarquee />
       <ServicesPreview />
       <PortfolioStrip />
       <AboutBlock />

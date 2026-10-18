@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bodoni_Moda, Manrope } from "next/font/google";
+import { Bodoni_Moda, Manrope, Pinyon_Script } from "next/font/google";
 import { StoreHydrator } from "@/lib/hydration";
 import "./globals.css";
 
@@ -15,6 +15,13 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
+// Copperplate script (closest free match to the Edwardian-style reference).
+const pinyon = Pinyon_Script({
+  variable: "--font-pinyon",
+  subsets: ["latin"],
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "Beauty Salon",
@@ -25,7 +32,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bodoni.variable} ${manrope.variable} h-full antialiased`}>
+    <html lang="en" className={`${bodoni.variable} ${manrope.variable} ${pinyon.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-ink">
         <StoreHydrator>{children}</StoreHydrator>
       </body>

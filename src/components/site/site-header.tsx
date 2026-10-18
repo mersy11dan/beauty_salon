@@ -31,10 +31,8 @@ export function Wordmark({
   return (
     <span
       className={clsx(
-        "font-display uppercase text-ink",
-        size === "lg"
-          ? "text-[1.75rem] leading-none tracking-[0.2em] md:text-[2.1rem]"
-          : "text-[1.05rem] leading-none tracking-[0.18em]",
+        "font-script text-ink",
+        size === "lg" ? "text-[2.75rem] leading-[1.1] md:text-[3.4rem]" : "text-[1.7rem] leading-none",
         className,
       )}
     >
@@ -65,12 +63,12 @@ export function SiteHeader() {
   // is constrained by the full-page wrapper and stays pinned all the way down.
   return (
     <>
-      <header className="flex flex-col items-center px-6 pb-7 pt-10 text-center md:pt-12">
+      <header className="flex flex-col items-center px-6 pb-5 pt-8 text-center md:pt-10">
         <Link href="/" className="rounded-sm">
           <Wordmark name={settings.name} logo={settings.logoDataUrl} />
         </Link>
         {settings.tagline && (
-          <p className="mt-3 text-[11.5px] font-medium uppercase tracking-[0.22em] text-muted">
+          <p className="mt-2 text-[11.5px] font-medium uppercase tracking-[0.22em] text-muted">
             {settings.tagline}
           </p>
         )}

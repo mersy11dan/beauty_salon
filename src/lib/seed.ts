@@ -1,5 +1,5 @@
 import { addDays, todayISO } from "./dates";
-import type { Hours, SalonData, Service } from "./types";
+import type { Hours, PortfolioItem, SalonData, Service } from "./types";
 
 export const DEMO_ACCOUNTS = {
   admin: { email: "admin@beautysalon.demo", password: "admin1234" },
@@ -31,6 +31,24 @@ const services: Service[] = [
   { id: "svc_bridal", name: "Bridal trial", category: "Makeup", durationMin: 90, price: 150 },
   { id: "svc_brows", name: "Brow shape and tint", category: "Makeup", durationMin: 30, price: 30 },
 ];
+
+function portfolioSet(category: string, folder: string, items: [caption: string, alt: string][]): PortfolioItem[] {
+  return items.map(([caption, alt], i) => ({
+    id: `pf_${folder}_${i + 1}`,
+    src: `/media/portfolio/${folder}/${String(i + 1).padStart(2, "0")}.webp`,
+    alt,
+    caption,
+    category,
+  }));
+}
+
+/** Round-robin merge so the first few items already show every category. */
+function interleave<T>(lists: T[][]): T[] {
+  const out: T[] = [];
+  const longest = Math.max(...lists.map((l) => l.length));
+  for (let i = 0; i < longest; i++) for (const l of lists) if (l[i]) out.push(l[i]);
+  return out;
+}
 
 export function createSeed(): SalonData {
   const today = todayISO();
@@ -115,14 +133,41 @@ export function createSeed(): SalonData {
         serviceIds: ["svc_daymakeup", "svc_eveningmakeup", "svc_bridal", "svc_brows"],
       },
     ],
-    portfolio: [
-      { id: "pf_1", src: "/media/hero/nails.webp", alt: "Nude almond gel nails", caption: "Almond gel, sheer nude", category: "Nails" },
-      { id: "pf_2", src: "/media/hero/hair.webp", alt: "Round-brush blow-dry on long brown hair", caption: "Round-brush blow-dry", category: "Hair" },
-      { id: "pf_3", src: "/media/hero/makeup.webp", alt: "Powder brush with peach blush", caption: "Peach cream blush", category: "Makeup" },
-      { id: "pf_4", src: "/media/hero/hair.webp", alt: "Warm brunette balayage", caption: "Warm brunette balayage", category: "Hair" },
-      { id: "pf_5", src: "/media/hero/nails.webp", alt: "Short natural manicure", caption: "Short natural manicure", category: "Nails" },
-      { id: "pf_6", src: "/media/hero/makeup.webp", alt: "Soft evening makeup", caption: "Soft evening look", category: "Makeup" },
-    ],
+    portfolio: interleave([
+      portfolioSet("Nails", "nails", [
+        ["Cherry-print almond set", "Long almond nails with hand-painted red cherries"],
+        ["Jade marble gel", "Almond nails in translucent green jade marble"],
+        ["Classic wine red", "Glossy wine-red oval nails"],
+        ["Deep green cat-eye", "Short dark green cat-eye nails"],
+        ["Champagne glitter ombré", "Sheer nude stiletto nails fading into gold glitter"],
+        ["Pistachio French with daisies", "Mint French tips with tiny daisies"],
+        ["Leopard French tips", "Nude almond nails with leopard-print tips"],
+        ["Milky white almond", "Milky white medium almond nails"],
+        ["Navy velvet", "Short navy blue almond nails"],
+      ]),
+      portfolioSet("Hair", "hair", [
+        ["Nineties bouncy blow-out", "Golden blonde hair with voluminous curled ends"],
+        ["Hollywood curls", "Deep brunette set in tight glossy curls"],
+        ["Glass-finish curls", "Dark hair with mirror-shine bouncy curls"],
+        ["Bronde balayage", "Long layered hair with sunlit bronde balayage"],
+        ["Natural curl definition", "Long defined natural curls"],
+        ["Caramel waves", "Honey-brown hair in soft loose waves"],
+        ["Chocolate ringlets", "Rich chocolate-brown hair in long ringlets"],
+        ["Butterfly cut with bangs", "Layered butterfly cut with wispy bangs"],
+      ]),
+      portfolioSet("Makeup", "makeup", [
+        ["Soft sculpted glam", "Warm sculpted contour with a muted mauve lip"],
+        ["Graphic pink liner", "Editorial pink graphic eyeliner with a dark lip"],
+        ["Rose flush", "Rosy blush with glossy nude lips and a sleek bun"],
+        ["Old-Hollywood wave", "Soft pink glam with a sculpted finger wave"],
+        ["Painted leopard", "Playful painted leopard spots across the cheekbone"],
+        ["Barely-there glow", "Fresh dewy skin with peach blush"],
+        ["Deep bronze glam", "Bronze shimmer on deep skin with a glossy lip"],
+        ["Sharp winged liner", "Dramatic winged eyeliner and a brown lip"],
+        ["Smoky bridal", "Soft smoky eye with full lashes for a bride"],
+        ["Golden-hour bronze", "Warm bronze glam with gold statement earrings"],
+      ]),
+    ]),
     reviews: [
       { id: "rv_1", author: "Priya S.", rating: 5, date: addDays(today, -6), text: "Amara shaped my nails exactly the way I had in my head and could not describe. Three weeks later, no lifting." },
       { id: "rv_2", author: "Daniel K.", rating: 5, date: addDays(today, -12), text: "Walked in for a short cut on a Thursday evening. In and out in half an hour, and it still looks sharp." },

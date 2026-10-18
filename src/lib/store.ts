@@ -146,7 +146,13 @@ export const useSalonStore = create<SalonState>()(
     }),
     {
       name: "beauty-salon-demo",
-      version: 1,
+      version: 2,
+      migrate: (persisted, version) => {
+        const p = (persisted ?? {}) as Partial<SalonState>;
+        // v2: the demo portfolio moved from the three hero cut-outs to the real photo sets.
+        if (version < 2) return { ...p, portfolio: createSeed().portfolio };
+        return p;
+      },
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({

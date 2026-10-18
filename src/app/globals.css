@@ -50,9 +50,18 @@
 
   --font-display: var(--font-bodoni), "Bodoni Moda", Didot, "Times New Roman", serif;
   --font-sans: var(--font-manrope), Manrope, system-ui, sans-serif;
+  --font-script: var(--font-pinyon), "Pinyon Script", "Edwardian Script ITC", cursive;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* Script sizes run larger than serif at the same role: the face is light and low x-height. */
+  --text-script-xl: clamp(3.4rem, 2rem + 5vw, 6.4rem);
+  --text-script-xl--line-height: 1.05;
+  --text-script-lg: clamp(2.8rem, 1.8rem + 3.2vw, 4.8rem);
+  --text-script-lg--line-height: 1.1;
+  --text-script-md: clamp(2rem, 1.5rem + 1.6vw, 3rem);
+  --text-script-md--line-height: 1.15;
 
   --text-display-xl: clamp(2.6rem, 1.5rem + 3.6vw, 4.6rem);
   --text-display-xl--line-height: 1.02;
@@ -113,8 +122,37 @@ body {
   font-optical-sizing: auto;
 }
 
+@utility font-script {
+  font-family: var(--font-script);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  /* Swash capitals overhang the em box on the left; give them room. */
+  padding-inline: 0.08em;
+  margin-inline: -0.08em;
+}
+
 @utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* 3D helpers for tilt cards and the scroll gallery. */
+@utility perspective-near {
+  perspective: 900px;
+}
+
+@utility perspective-far {
+  perspective: 1600px;
+}
+
+@utility preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Masked line reveal: the child slides up from behind this clip. */
+@utility clip-line {
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
 }
 
 @utility no-scrollbar {
@@ -158,4 +196,26 @@ body {
 
 @utility animate-rise {
   animation: rise 900ms var(--ease-out-expo) both;
+}
+
+/* Ticker: content is duplicated once, so -50% is exactly one copy. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Lenis drives the scroll; the browser's own smoothing would fight it. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
 }

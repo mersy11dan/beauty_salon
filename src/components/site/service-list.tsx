@@ -10,13 +10,16 @@ export function ServiceRows({
   services,
   bookable,
   compact,
+  onHover,
 }: {
   services: Service[];
   bookable: boolean;
   compact?: boolean;
+  /** Fires with the hovered service, or null when the pointer leaves the list. */
+  onHover?: (service: Service | null) => void;
 }) {
   return (
-    <ul className="hairline-t">
+    <ul className="hairline-t" onPointerLeave={onHover ? () => onHover(null) : undefined}>
       {services.map((s) => {
         const row = (
           <>
@@ -36,7 +39,7 @@ export function ServiceRows({
           bookable && "group transition-colors duration-300 hover:bg-soft -mx-3 px-3 rounded-md",
         );
         return (
-          <li key={s.id}>
+          <li key={s.id} onPointerEnter={onHover ? () => onHover(s) : undefined}>
             {bookable ? (
               <Link href={`/book?service=${s.id}`} className={cls} aria-label={`Book ${s.name}`}>
                 {row}
