@@ -20,10 +20,10 @@ export function SiteFooter() {
             © {year} {settings.name}. {settings.contact.address}.
           </p>
           <p className="flex items-center gap-5">
-            <a href={telHref(settings.contact.phone)} className="tabular hover:text-ink">
+            <a href={telHref(settings.contact.phone)} className="hit-area tabular hover:text-ink">
               {formatPhone(settings.contact.phone)}
             </a>
-            <Link href="/login" className="hover:text-ink">
+            <Link href="/login" className="hit-area hover:text-ink">
               Staff sign in
             </Link>
           </p>

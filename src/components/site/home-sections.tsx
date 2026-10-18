@@ -77,7 +77,7 @@ export function ServicesPreview() {
             className="mb-0 md:mb-0"
           />
           <Reveal delay={0.3} y={10}>
-            <Link href="/services" className="group mt-8 inline-flex items-center gap-2 text-[14px] font-medium text-ink">
+            <Link href="/services" className="hit-area group mt-8 inline-flex items-center gap-2 text-[14px] font-medium text-ink">
               Full list
               <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">→</span>
             </Link>
@@ -259,7 +259,7 @@ export function VisitBlock() {
                   href={settings.contact.mapUrl}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="group inline-flex w-fit items-center gap-2 text-[14px] font-medium text-ink"
+                  className="hit-area group inline-flex w-fit items-center gap-2 text-[14px] font-medium text-ink"
                 >
                   Open in maps
                   <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">→</span>

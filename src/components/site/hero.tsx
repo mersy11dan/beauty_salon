@@ -55,7 +55,7 @@ export function Hero() {
                   aria-selected={i === index}
                   onClick={() => setIndex(i)}
                   className={clsx(
-                    "relative rounded-sm pb-1 transition-colors duration-500",
+                    "hit-area rounded-sm pb-1 transition-colors duration-500",
                     i === index ? "text-accent" : "text-muted hover:text-ink",
                   )}
                 >

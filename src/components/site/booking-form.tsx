@@ -334,7 +334,7 @@ export function BookingForm() {
                   href={settings.contact.mapUrl}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="group inline-flex w-fit items-center gap-2 text-[14px] font-medium text-ink"
+                  className="hit-area group inline-flex w-fit items-center gap-2 text-[14px] font-medium text-ink"
                 >
                   Open in maps
                   <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">
