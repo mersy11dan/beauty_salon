@@ -51,6 +51,7 @@
   --font-display: var(--font-bodoni), "Bodoni Moda", Didot, "Times New Roman", serif;
   --font-sans: var(--font-manrope), Manrope, system-ui, sans-serif;
   --font-script: var(--font-pinyon), "Pinyon Script", "Edwardian Script ITC", cursive;
+  --font-ethiopic: var(--font-noto-ethiopic), "Noto Serif Ethiopic", Nyala, Kefa, serif;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
