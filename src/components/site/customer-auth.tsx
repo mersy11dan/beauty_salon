@@ -23,6 +23,16 @@ function safeNext(raw: string | null) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Links an input to the `${id}-error` / `${id}-hint` text that `Field` renders. */
+function fieldAria(id: string, error?: string, hasHint = false) {
+  return {
+    "aria-invalid": !!error,
+    "aria-describedby": error ? `${id}-error` : hasHint ? `${id}-hint` : undefined,
+  };
+}
+
+const TEXT_BUTTON = "cursor-pointer font-medium text-accent hover:text-accent-hover";
+
 export function CustomerAuth() {
   const router = useRouter();
   const params = useSearchParams();
@@ -93,7 +103,7 @@ export function CustomerAuth() {
                 aria-pressed={mode === m}
                 onClick={() => switchTo(m)}
                 className={clsx(
-                  "h-10 rounded-full text-[14px] font-medium transition-colors duration-300",
+                  "h-10 cursor-pointer rounded-full text-[14px] font-medium transition-colors duration-300",
                   mode === m ? "bg-ink text-bg" : "text-ink/70 hover:text-ink",
                 )}
               >
@@ -112,6 +122,7 @@ export function CustomerAuth() {
                   id="signin-password"
                   type="password"
                   autoComplete="current-password"
+                  {...fieldAria("signin-password", errors.password)}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -121,7 +132,7 @@ export function CustomerAuth() {
               </Button>
               <p className="text-center text-[14px] text-muted">
                 First time here?{" "}
-                <button type="button" onClick={() => switchTo("create")} className="font-medium text-accent hover:text-accent-hover">
+                <button type="button" onClick={() => switchTo("create")} className={TEXT_BUTTON}>
                   Create an account
                 </button>
               </p>
@@ -130,7 +141,7 @@ export function CustomerAuth() {
                   Demo guest:{" "}
                   <button
                     type="button"
-                    className="text-ink hover:text-accent"
+                    className="cursor-pointer text-ink hover:text-accent"
                     onClick={() => {
                       setEmail(DEMO_CUSTOMER.email);
                       setPassword(DEMO_CUSTOMER.password);
@@ -145,7 +156,13 @@ export function CustomerAuth() {
           ) : (
             <form onSubmit={create} noValidate className="mt-7 flex flex-col gap-5">
               <Field label="Name" htmlFor="create-name" error={errors.name}>
-                <Input id="create-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+                <Input
+                  id="create-name"
+                  autoComplete="name"
+                  {...fieldAria("create-name", errors.name)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </Field>
               <Field label="Phone" htmlFor="create-phone" error={errors.phone} hint="We confirm bookings by text or call.">
                 <Input
@@ -153,18 +170,27 @@ export function CustomerAuth() {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
+                  {...fieldAria("create-phone", errors.phone, true)}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </Field>
               <Field label="Email" htmlFor="create-email" error={errors.email}>
-                <Input id="create-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input
+                  id="create-email"
+                  type="email"
+                  autoComplete="email"
+                  {...fieldAria("create-email", errors.email)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </Field>
               <Field label="Password" htmlFor="create-password" error={errors.password} hint="At least 6 characters.">
                 <Input
                   id="create-password"
                   type="password"
                   autoComplete="new-password"
+                  {...fieldAria("create-password", errors.password, true)}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -174,7 +200,7 @@ export function CustomerAuth() {
               </Button>
               <p className="text-center text-[14px] text-muted">
                 Already have an account?{" "}
-                <button type="button" onClick={() => switchTo("sign-in")} className="font-medium text-accent hover:text-accent-hover">
+                <button type="button" onClick={() => switchTo("sign-in")} className={TEXT_BUTTON}>
                   Sign in
                 </button>
               </p>
