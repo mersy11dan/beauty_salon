@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+/*
+  Salon theme. The four base values are editable from the admin and are
+  applied inline on the public-site wrapper; everything else derives from them
+  so a colour change can't break contrast relationships.
+*/
+:root {
+  --bg: #f5f1f2;
+  --ink: #1e181c;
+  --accent: #6e2b3f;
+  --surface: #ffffff;
+
+  --muted: color-mix(in oklab, var(--ink) 60%, var(--bg));
+  --faint: color-mix(in oklab, var(--ink) 40%, var(--bg));
+  --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
+  --line-strong: color-mix(in oklab, var(--ink) 24%, var(--bg));
+  --soft: color-mix(in oklab, var(--accent) 7%, var(--bg));
+  --accent-ink: #ffffff;
+  --accent-hover: color-mix(in oklab, var(--accent) 88%, var(--ink));
+
+  /* Desk and admin use their own quiet palette regardless of salon branding. */
+  --ops-bg: #f6f6f7;
+  --ops-surface: #ffffff;
+  --ops-ink: #17161a;
+  --ops-muted: #6b6870;
+  --ops-line: #e4e2e7;
+  --ops-accent: #2b2a33;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-hover: var(--accent-hover);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-soft: var(--soft);
+
+  --color-ops-bg: var(--ops-bg);
+  --color-ops-surface: var(--ops-surface);
+  --color-ops-ink: var(--ops-ink);
+  --color-ops-muted: var(--ops-muted);
+  --color-ops-line: var(--ops-line);
+  --color-ops-accent: var(--ops-accent);
+
+  --font-display: var(--font-bodoni), "Bodoni Moda", Didot, "Times New Roman", serif;
+  --font-sans: var(--font-manrope), Manrope, system-ui, sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  --text-display-xl: clamp(2.6rem, 1.5rem + 3.6vw, 4.6rem);
+  --text-display-xl--line-height: 1.02;
+  --text-display-xl--letter-spacing: -0.015em;
+  --text-display-lg: clamp(2rem, 1.3rem + 2.4vw, 3.5rem);
+  --text-display-lg--line-height: 1.08;
+  --text-display-lg--letter-spacing: -0.01em;
+  --text-display-md: clamp(1.5rem, 1.2rem + 1.2vw, 2.25rem);
+  --text-display-md--line-height: 1.15;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Thin, tinted scrollbar on desktop. */
+@media (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+}
+
+/* Utilities */
+@utility font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility hairline-t {
+  border-top: 1px solid var(--line);
+}
+
+@utility hairline-b {
+  border-bottom: 1px solid var(--line);
+}
+
+/* Hero photo: soft edge mask so the image dissolves into the page. */
+@utility photo-fade {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, #000 14%, #000 88%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 10%, #000 86%, transparent 100%);
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 14%, #000 88%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 10%, #000 86%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+/* Entrance: used once on the hero, not scattered across sections. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-rise {
+  animation: rise 900ms var(--ease-out-expo) both;
+}

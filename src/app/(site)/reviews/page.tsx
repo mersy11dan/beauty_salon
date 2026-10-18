@@ -1,0 +1,41 @@
+"use client";
+
+import { ModuleGate } from "@/components/site/module-gate";
+import { PageTitle } from "@/components/site/section";
+import { Stars } from "@/components/site/stars";
+import { formatDateShort } from "@/lib/dates";
+import { useSalonStore } from "@/lib/store";
+
+export default function ReviewsPage() {
+  const reviews = useSalonStore((s) => s.reviews);
+  const avg = reviews.length
+    ? Math.round((reviews.reduce((a, r) => a + r.rating, 0) / reviews.length) * 10) / 10
+    : 0;
+
+  return (
+    <ModuleGate module="reviews">
+      <PageTitle
+        title="Reviews"
+        intro={reviews.length ? `${avg} out of 5 across ${reviews.length} reviews. Written by clients after their visit.` : undefined}
+      />
+      <div className="mx-auto max-w-6xl px-6 pb-20 md:pb-28">
+        <ul className="grid gap-x-14 md:grid-cols-2">
+          {reviews.map((r) => (
+            <li key={r.id} className="hairline-t py-9 md:py-11">
+              <blockquote className="flex flex-col gap-5">
+                <p className="font-display text-[1.4rem] leading-[1.32] text-ink md:text-[1.55rem]">“{r.text}”</p>
+                <footer className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-muted">
+                  <Stars value={r.rating} />
+                  <span className="text-ink">{r.author}</span>
+                  <span>·</span>
+                  <span>{formatDateShort(r.date)}</span>
+                </footer>
+              </blockquote>
+            </li>
+          ))}
+        </ul>
+        {reviews.length === 0 && <p className="text-[16px] text-muted">No reviews yet.</p>}
+      </div>
+    </ModuleGate>
+  );
+}
