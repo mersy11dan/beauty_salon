@@ -72,8 +72,9 @@ export function hhmmOf(minutes: number) {
   return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
 }
 
-/** "09:30" -> "9:30 am" */
-export function formatTime(hhmm: string) {
+/** "09:30" -> "9:30 am", or "09:30" on a 24-hour clock. */
+export function formatTime(hhmm: string, clock: "12h" | "24h" = "12h") {
+  if (clock === "24h") return hhmm;
   const [h, m] = hhmm.split(":").map(Number);
   const suffix = h >= 12 ? "pm" : "am";
   const hour = h % 12 === 0 ? 12 : h % 12;

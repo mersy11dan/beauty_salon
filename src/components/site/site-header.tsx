@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { navFor } from "@/lib/nav";
+import { useCopy } from "@/lib/site-hooks";
 import { useSettings } from "@/lib/store";
 
 export function Wordmark({
@@ -48,7 +49,8 @@ export function SiteHeader() {
   const pathname = usePathname();
   const sentinel = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
-  const items = navFor(settings.modules);
+  const copy = useCopy();
+  const items = navFor(settings.modules, copy);
 
   useEffect(() => {
     const el = sentinel.current;

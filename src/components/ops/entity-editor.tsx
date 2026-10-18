@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -27,6 +27,7 @@ export function EntityEditor<T extends { id: string }>({
   thumb,
   onSave,
   onRemove,
+  onMove,
   addLabel = "Add",
   emptyText = "Nothing here yet.",
 }: {
@@ -38,6 +39,8 @@ export function EntityEditor<T extends { id: string }>({
   thumb?: (item: T) => string | null;
   onSave: (item: T) => void;
   onRemove: (id: string) => void;
+  /** Shows up and down buttons when set. */
+  onMove?: (id: string, dir: -1 | 1) => void;
   addLabel?: string;
   emptyText?: string;
 }) {
@@ -67,7 +70,7 @@ export function EntityEditor<T extends { id: string }>({
           <p className="px-5 py-10 text-center text-[14.5px] text-ops-muted">{emptyText}</p>
         ) : (
           <ul className="divide-y divide-ops-line">
-            {items.map((item) => {
+            {items.map((item, i) => {
               const t = thumb?.(item);
               return (
                 <li key={item.id} className="flex items-center gap-4 px-5 py-3.5">
@@ -82,6 +85,28 @@ export function EntityEditor<T extends { id: string }>({
                     {subtitle && <p className="truncate text-[13px] text-ops-muted">{subtitle(item)}</p>}
                   </div>
                   <div className="flex items-center gap-1">
+                    {onMove && (
+                      <>
+                        <button
+                          type="button"
+                          aria-label={`Move ${title(item)} up`}
+                          disabled={i === 0}
+                          onClick={() => onMove(item.id, -1)}
+                          className="rounded-md p-2 text-ops-muted hover:bg-ops-bg hover:text-ops-ink disabled:pointer-events-none disabled:opacity-30"
+                        >
+                          <ChevronUp size={15} strokeWidth={1.75} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Move ${title(item)} down`}
+                          disabled={i === items.length - 1}
+                          onClick={() => onMove(item.id, 1)}
+                          className="rounded-md p-2 text-ops-muted hover:bg-ops-bg hover:text-ops-ink disabled:pointer-events-none disabled:opacity-30"
+                        >
+                          <ChevronDown size={15} strokeWidth={1.75} />
+                        </button>
+                      </>
+                    )}
                     <button type="button" aria-label="Edit" onClick={() => setEditing({ ...item })} className="rounded-md p-2 text-ops-muted hover:bg-ops-bg hover:text-ops-ink">
                       <Pencil size={15} strokeWidth={1.75} />
                     </button>

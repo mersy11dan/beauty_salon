@@ -10,10 +10,11 @@ export default function AdminPortfolioPage() {
   const portfolio = useSalonStore((s) => s.portfolio);
   const upsert = useSalonStore((s) => s.upsertPortfolio);
   const remove = useSalonStore((s) => s.removePortfolio);
+  const move = useSalonStore((s) => s.moveItem);
 
   return (
     <>
-      <OpsTitle title="Portfolio" intro="Photos of finished work. The first five also appear on the homepage." />
+      <OpsTitle title="Portfolio" intro="Photos of finished work, in the order shown here. The first nine also appear on the homepage." />
       <EntityEditor<PortfolioItem>
         items={portfolio}
         fields={[
@@ -28,6 +29,7 @@ export default function AdminPortfolioPage() {
         thumb={(p) => p.src}
         onSave={upsert}
         onRemove={remove}
+        onMove={(id, dir) => move("portfolio", id, dir)}
         addLabel="Add a photo"
       />
     </>

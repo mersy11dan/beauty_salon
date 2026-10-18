@@ -8,12 +8,14 @@ import { SplitWords } from "@/components/motion/split-text";
 import { Tilt } from "@/components/motion/tilt";
 import { isDarkTheme } from "@/components/site/theme-vars";
 import { ButtonLink } from "@/components/ui/button";
+import { useCopy } from "@/lib/site-hooks";
 import { useSalonStore } from "@/lib/store";
 
 const INTERVAL_MS = 5600;
 
 export function Hero() {
   const settings = useSalonStore((s) => s.settings);
+  const copy = useCopy();
   const reduce = useReducedMotion();
   const { hero, modules, contact } = settings;
   const dark = isDarkTheme(settings.theme);
@@ -30,10 +32,10 @@ export function Hero() {
   const current = slides[index] ?? slides[0];
 
   const cta = modules.booking
-    ? { href: "/book", label: "Book a time" }
+    ? { href: "/book", label: copy.heroBook }
     : modules.services
-      ? { href: "/services", label: "See services" }
-      : { href: `tel:${contact.phone.replace(/[^+\d]/g, "")}`, label: "Call to book" };
+      ? { href: "/services", label: copy.heroServices }
+      : { href: `tel:${contact.phone.replace(/[^+\d]/g, "")}`, label: copy.heroCall };
 
   return (
     <section
@@ -94,9 +96,9 @@ export function Hero() {
                 {cta.label}
               </ButtonLink>
             )}
-            {modules.booking && modules.services && (
+            {modules.booking && modules.services && copy.heroPrices && (
               <ButtonLink href="/services" variant="ghost" size="lg" className="-ml-2 px-4">
-                Prices
+                {copy.heroPrices}
               </ButtonLink>
             )}
           </div>

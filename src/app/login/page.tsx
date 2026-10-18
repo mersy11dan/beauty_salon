@@ -24,6 +24,7 @@ function LoginInner() {
   const signIn = useSalonStore((s) => s.signIn);
   const accounts = useSalonStore((s) => s.accounts);
   const name = useSalonStore((s) => s.settings.name);
+  const demoHints = useSalonStore((s) => s.settings.demoHints);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +40,7 @@ function LoginInner() {
     e.preventDefault();
     const role = signIn(email, password);
     if (!role) {
-      setError("That email and password do not match. Check the demo logins below.");
+      setError(demoHints ? "That email and password do not match. Check the demo logins below." : "That email and password do not match.");
       return;
     }
     router.replace(next ?? (role === "admin" ? "/admin" : "/desk"));
@@ -66,24 +67,26 @@ function LoginInner() {
           </Button>
         </form>
 
-        <div className="mt-10 rounded-xl border border-ops-line bg-ops-surface p-5 text-[13.5px]">
-          <p className="font-medium text-ops-ink">Demo logins</p>
-          <dl className="mt-3 grid grid-cols-[5rem_1fr] gap-y-2 text-ops-muted">
-            <dt>Admin</dt>
-            <dd>
-              <button type="button" className="text-left hover:text-ops-ink" onClick={() => { setEmail(accounts.admin.email); setPassword(accounts.admin.password); }}>
-                {accounts.admin.email} · {accounts.admin.password}
-              </button>
-            </dd>
-            <dt>Staff</dt>
-            <dd>
-              <button type="button" className="text-left hover:text-ops-ink" onClick={() => { setEmail(accounts.staff.email); setPassword(accounts.staff.password); }}>
-                {accounts.staff.email} · {accounts.staff.password}
-              </button>
-            </dd>
-          </dl>
-          <p className="mt-3 text-ops-muted">Select one to fill the form.</p>
-        </div>
+        {demoHints && (
+          <div className="mt-10 rounded-xl border border-ops-line bg-ops-surface p-5 text-[13.5px]">
+            <p className="font-medium text-ops-ink">Demo logins</p>
+            <dl className="mt-3 grid grid-cols-[5rem_1fr] gap-y-2 text-ops-muted">
+              <dt>Admin</dt>
+              <dd>
+                <button type="button" className="text-left hover:text-ops-ink" onClick={() => { setEmail(accounts.admin.email); setPassword(accounts.admin.password); }}>
+                  {accounts.admin.email} · {accounts.admin.password}
+                </button>
+              </dd>
+              <dt>Staff</dt>
+              <dd>
+                <button type="button" className="text-left hover:text-ops-ink" onClick={() => { setEmail(accounts.staff.email); setPassword(accounts.staff.password); }}>
+                  {accounts.staff.email} · {accounts.staff.password}
+                </button>
+              </dd>
+            </dl>
+            <p className="mt-3 text-ops-muted">Select one to fill the form.</p>
+          </div>
+        )}
       </div>
     </div>
   );

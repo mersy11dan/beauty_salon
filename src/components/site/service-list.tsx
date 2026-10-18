@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { formatDuration } from "@/lib/dates";
-import { formatMoney } from "@/lib/format";
+import { useMoney } from "@/lib/site-hooks";
 import type { Service } from "@/lib/types";
 
 export function ServiceRows({
@@ -18,6 +18,7 @@ export function ServiceRows({
   /** Fires with the hovered service, or null when the pointer leaves the list. */
   onHover?: (service: Service | null) => void;
 }) {
+  const formatMoney = useMoney();
   return (
     <ul className="hairline-t" onPointerLeave={onHover ? () => onHover(null) : undefined}>
       {services.map((s) => {

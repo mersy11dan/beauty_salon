@@ -7,7 +7,7 @@ import { PaymentForm } from "@/components/ops/payment-form";
 import { PaidBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateShort, isSameWeek, todayISO } from "@/lib/dates";
-import { formatMoney } from "@/lib/format";
+import { useMoney } from "@/lib/site-hooks";
 import { useSalonStore } from "@/lib/store";
 
 const METHOD_LABEL = { cash: "Cash", card: "Card", transfer: "Transfer" } as const;
@@ -18,6 +18,7 @@ export default function LedgerPage() {
   const updatePayment = useSalonStore((s) => s.updatePayment);
   const removePayment = useSalonStore((s) => s.removePayment);
   const [adding, setAdding] = useState(false);
+  const formatMoney = useMoney();
   const today = todayISO();
 
   const totals = useMemo(() => {

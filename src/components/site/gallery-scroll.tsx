@@ -6,8 +6,21 @@ import { motion, useScroll, useTransform, type MotionValue } from "motion/react"
 import { useEffect, useRef, useState } from "react";
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { MOTION_OK, useMediaQuery } from "@/components/motion/use-media";
+import { useCopy } from "@/lib/site-hooks";
 import type { PortfolioItem } from "@/lib/types";
 import { SectionHeading } from "./section";
+
+function PortfolioHeading({ className }: { className?: string }) {
+  const copy = useCopy();
+  return (
+    <SectionHeading
+      label={copy.homePortfolioLabel}
+      title={copy.homePortfolioTitle}
+      more={{ href: "/portfolio", label: copy.homePortfolioLink }}
+      className={className}
+    />
+  );
+}
 
 const CARD_WIDTH = "clamp(200px, 21vw, 300px)";
 
@@ -47,12 +60,7 @@ function Pinned({ items }: { items: PortfolioItem[] }) {
     <section ref={sectionRef} className="hairline-t relative" style={{ height: `${Math.max(220, 120 + items.length * 26)}vh` }}>
       <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden pt-12">
         <div className="mx-auto w-full max-w-6xl px-6">
-          <SectionHeading
-            label="Portfolio"
-            title="Recent work"
-            more={{ href: "/portfolio", label: "See everything" }}
-            className="mb-6 md:mb-8"
-          />
+          <PortfolioHeading className="mb-6 md:mb-8" />
         </div>
 
         <motion.div
@@ -118,7 +126,7 @@ function Strip({ items }: { items: PortfolioItem[] }) {
   return (
     <section className="hairline-t py-16 md:py-24">
       <div className="mx-auto max-w-6xl px-6">
-        <SectionHeading label="Portfolio" title="Recent work" more={{ href: "/portfolio", label: "See everything" }} />
+        <PortfolioHeading />
       </div>
       <RevealGroup
         stagger={0.07}

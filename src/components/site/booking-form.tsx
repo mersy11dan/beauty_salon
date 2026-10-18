@@ -7,11 +7,11 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Reveal } from "@/components/motion/reveal";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import { fill, type Copy } from "@/lib/copy";
 import {
   formatDateLong,
   formatDateShort,
   formatDuration,
-  formatTime,
   fromISODate,
   hhmmOf,
   minutesOf,
@@ -19,7 +19,7 @@ import {
   todayISO,
   WEEKDAY_SHORT,
 } from "@/lib/dates";
-import { formatMoney } from "@/lib/format";
+import { useCopy, useMoney, useTime } from "@/lib/site-hooks";
 import { availableSlots, upcomingOpenDates } from "@/lib/slots";
 import { useCustomer, useSalonStore } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
@@ -30,10 +30,10 @@ import { groupByCategory } from "./service-list";
 const ANYONE = "__anyone__";
 
 /** Minutes since midnight, end exclusive. */
-const PERIODS = [
-  { label: "Morning", from: 0, until: 12 * 60 },
-  { label: "Afternoon", from: 12 * 60, until: 17 * 60 },
-  { label: "Evening", from: 17 * 60, until: 24 * 60 },
+const PERIODS: { label: keyof Copy; from: number; until: number }[] = [
+  { label: "bookMorning", from: 0, until: 12 * 60 },
+  { label: "bookAfternoon", from: 12 * 60, until: 17 * 60 },
+  { label: "bookEvening", from: 17 * 60, until: 24 * 60 },
 ];
 
 const LABEL = "text-[11.5px] font-semibold uppercase tracking-[0.22em]";
@@ -46,12 +46,8 @@ const PRESS =
   "transition-[background-color,border-color,color,transform] duration-300 ease-out-quart active:scale-[0.97]";
 
 export function BookingIntro() {
-  return (
-    <PageTitle
-      title="Book a time"
-      intro="Takes about a minute. We confirm by text or call, and you pay at the desk."
-    />
-  );
+  const copy = useCopy();
+  return <PageTitle title={copy.bookTitle} intro={copy.bookIntro} />;
 }
 
 function Step({
@@ -69,14 +65,13 @@ function Step({
   done?: boolean;
   children: ReactNode;
 }) {
+  const copy = useCopy();
   return (
     <Reveal y={16} amount={0.1}>
       <section aria-labelledby={`${id}-title`} className="hairline-t py-9 md:py-11">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <p className={clsx(LABEL, "mb-1.5 text-accent")}>
-              Step {n} of {total}
-            </p>
+            <p className={clsx(LABEL, "mb-1.5 text-accent")}>{fill(copy.bookStep, { n, total })}</p>
             <h2 id={`${id}-title`} className="font-display text-display-md text-ink">
               {title}
               {done && <span className="sr-only"> (done)</span>}
@@ -170,6 +165,9 @@ export function BookingForm() {
   const createAppointment = useSalonStore((s) => s.createAppointment);
   const customer = useCustomer();
   const signOutCustomer = useSalonStore((s) => s.signOutCustomer);
+  const copy = useCopy();
+  const formatMoney = useMoney();
+  const formatTime = useTime();
 
   const staffOn = settings.modules.staff && staff.length > 0;
 
@@ -234,10 +232,10 @@ export function BookingForm() {
   const periods = useMemo(
     () =>
       PERIODS.map((p) => ({
-        label: p.label,
+        label: copy[p.label],
         slots: slots.filter((t) => minutesOf(t) >= p.from && minutesOf(t) < p.until),
       })).filter((p) => p.slots.length > 0),
-    [slots],
+    [slots, copy],
   );
 
   useEffect(() => {
@@ -255,9 +253,9 @@ export function BookingForm() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const next: Errors = {};
-    if (!time) next.time = "Pick a time that suits you.";
-    if (!name.trim()) next.name = "Add the name we should ask for.";
-    if (!phoneOk(phone)) next.phone = "Add a phone number we can reach you on.";
+    if (!time) next.time = copy.bookErrTime;
+    if (!name.trim()) next.name = copy.bookErrName;
+    if (!phoneOk(phone)) next.phone = copy.bookErrPhone;
     setErrors(next);
     if (next.time) return focusInvalid(timeRef.current);
     if (next.name) return focusInvalid(nameRef.current);
@@ -286,41 +284,43 @@ export function BookingForm() {
     return (
       <div ref={doneRef} tabIndex={-1} className="focus:outline-none">
         <PageTitle
-          label="Request sent"
-          title={`Thank you, ${done.guestName.split(/\s+/)[0]}`}
-          intro={`Someone at the desk will text or call ${done.guestPhone} to confirm. If you need to change anything before then, call ${settings.contact.phone}.`}
+          label={copy.doneLabel}
+          title={fill(copy.doneTitle, { name: done.guestName.split(/\s+/)[0] })}
+          intro={copy.doneIntro ? fill(copy.doneIntro, { phone: done.guestPhone, salonPhone: settings.contact.phone }) : undefined}
         />
         <div className="mx-auto grid max-w-6xl gap-12 px-6 pb-20 md:pb-28 lg:grid-cols-12 lg:gap-16">
           <Reveal y={16} className="lg:col-span-7">
             <div className="rounded-[18px] border border-line bg-surface p-7 md:p-9">
-              <p className={clsx(LABEL, "text-accent")}>Your visit</p>
+              <p className={clsx(LABEL, "text-accent")}>{copy.doneVisit}</p>
               <p className="mt-3 font-display text-display-md text-balance text-ink">{formatDateLong(done.date)}</p>
               <p className="tabular mt-1.5 text-[16px] text-muted">
-                {formatTime(done.time)} to {formatTime(end)}
+                {fill(copy.doneTimeRange, { start: formatTime(done.time), end: formatTime(end) })}
               </p>
               <dl className="hairline-t mt-7">
-                <SummaryRow label="Service" value={service.name} />
-                <SummaryRow label="Takes" value={formatDuration(service.durationMin)} />
-                {staffOn && <SummaryRow label="With" value={who ? who.name : "Whoever is free first"} />}
-                <SummaryRow label="Price" value={formatMoney(service.price)} />
+                <SummaryRow label={copy.bookRowService} value={service.name} />
+                <SummaryRow label={copy.bookRowTakes} value={formatDuration(service.durationMin)} />
+                {staffOn && <SummaryRow label={copy.bookRowWith} value={who ? who.name : copy.doneAnyone} />}
+                <SummaryRow label={copy.bookRowPrice} value={formatMoney(service.price)} />
               </dl>
-              <p className="mt-5 text-[13.5px] leading-[1.55] text-muted">
-                Payment is at the desk, after the appointment. Cash, card or transfer.
-              </p>
+              {copy.donePayment && <p className="mt-5 text-[13.5px] leading-[1.55] text-muted">{copy.donePayment}</p>}
             </div>
           </Reveal>
 
           <Reveal y={16} delay={0.1} className="lg:col-span-5">
-            <p className={clsx(LABEL, "mb-3 text-accent")}>Find us</p>
+            <p className={clsx(LABEL, "mb-3 text-accent")}>{copy.doneFindUs}</p>
             <address className="flex flex-col gap-4 not-italic">
               <p className="text-[17px] leading-[1.5] text-ink">{settings.contact.address}</p>
               <p className="flex flex-col gap-1 text-[15.5px] text-muted">
-                <a href={`tel:${tel}`} className="w-fit hover:text-ink">
-                  {settings.contact.phone}
-                </a>
-                <a href={`mailto:${settings.contact.email}`} className="w-fit hover:text-ink">
-                  {settings.contact.email}
-                </a>
+                {settings.contact.phone && (
+                  <a href={`tel:${tel}`} className="w-fit hover:text-ink">
+                    {settings.contact.phone}
+                  </a>
+                )}
+                {settings.contact.email && (
+                  <a href={`mailto:${settings.contact.email}`} className="w-fit hover:text-ink">
+                    {settings.contact.email}
+                  </a>
+                )}
               </p>
               {settings.contact.mapUrl && (
                 <a
@@ -329,7 +329,7 @@ export function BookingForm() {
                   rel="noreferrer noopener"
                   className="group inline-flex w-fit items-center gap-2 text-[14px] font-medium text-ink"
                 >
-                  Open in maps
+                  {copy.homeVisitMaps}
                   <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">
                     →
                   </span>
@@ -338,7 +338,7 @@ export function BookingForm() {
             </address>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <ButtonLink href="/" variant="secondary">
-                Back to the homepage
+                {copy.doneHome}
               </ButtonLink>
               <Button
                 variant="ghost"
@@ -352,7 +352,7 @@ export function BookingForm() {
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
               >
-                Book another
+                {copy.doneAnother}
               </Button>
             </div>
           </Reveal>
@@ -364,21 +364,21 @@ export function BookingForm() {
   const total = staffOn ? 4 : 3;
   const detailsDone = !!name.trim() && phoneOk(phone);
   const end = service && time ? hhmmOf(minutesOf(time) + service.durationMin) : "";
-  const staffName = staffId === ANYONE ? "Whoever is free first" : staff.find((m) => m.id === staffId)?.name;
+  const staffName = staffId === ANYONE ? copy.bookAnyoneNote : staff.find((m) => m.id === staffId)?.name;
   const hint = !service
-    ? "Start by choosing a service."
+    ? copy.bookHintService
     : !time
-      ? "Next, pick a day and a time."
+      ? copy.bookHintTime
       : !detailsDone
-        ? "Last step: your name and phone number."
-        : "Nothing is charged online. We confirm by text or call.";
+        ? copy.bookHintDetails
+        : copy.bookHintReady;
 
   return (
     <>
       <BookingIntro />
       <form onSubmit={submit} noValidate className="mx-auto grid max-w-6xl gap-10 px-6 pb-20 md:pb-28 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-7">
-          <Step id="service" n={1} total={total} title="What would you like?" done={!!service}>
+          <Step id="service" n={1} total={total} title={copy.bookStepService} done={!!service}>
             {groups.length > 1 && (
               <div role="group" aria-label="Filter services by category" className="mb-3 flex flex-wrap gap-x-7">
                 {groups.map(([cat]) => {
@@ -448,16 +448,16 @@ export function BookingForm() {
               </div>
             </fieldset>
             {services.length === 0 && (
-              <p className="text-[14.5px] text-muted">No services have been added yet. Call us and we will book you in.</p>
+              <p className="text-[14.5px] text-muted">{copy.bookNoServices}</p>
             )}
           </Step>
 
           {staffOn && (
-            <Step id="staff" n={2} total={total} title="With whom?" done={!!service}>
+            <Step id="staff" n={2} total={total} title={copy.bookStepStaff} done={!!service}>
               <fieldset>
                 <legend className="sr-only">Who you would like to see</legend>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {[{ id: ANYONE, name: "Anyone available", role: "Whoever is free first", photo: null }, ...eligibleStaff].map(
+                  {[{ id: ANYONE, name: copy.bookAnyone, role: copy.bookAnyoneNote, photo: null }, ...eligibleStaff].map(
                     (m) => {
                       const on = staffId === m.id;
                       return (
@@ -495,17 +495,15 @@ export function BookingForm() {
                 </div>
               </fieldset>
               {service && eligibleStaff.length === 0 && (
-                <p className="mt-3 text-[13.5px] text-muted">
-                  No one is assigned to this service yet. We will match you on the day.
-                </p>
+                <p className="mt-3 text-[13.5px] text-muted">{copy.bookNoStaff}</p>
               )}
             </Step>
           )}
 
-          <Step id="when" n={staffOn ? 3 : 2} total={total} title="When?" done={!!time}>
+          <Step id="when" n={staffOn ? 3 : 2} total={total} title={copy.bookStepWhen} done={!!time}>
             <div className="flex flex-col gap-8">
               <fieldset>
-                <legend className={clsx(LABEL, "mb-3 text-muted")}>Day</legend>
+                <legend className={clsx(LABEL, "mb-3 text-muted")}>{copy.bookDay}</legend>
                 {dates.length ? (
                   <div className="grid grid-cols-5 gap-2 sm:gap-2.5">
                     {dates.map((d) => {
@@ -532,7 +530,7 @@ export function BookingForm() {
                               on ? "text-accent-ink/80" : "text-muted",
                             )}
                           >
-                            {d === today ? "Today" : WEEKDAY_SHORT[dt.getDay()]}
+                            {d === today ? copy.bookToday : WEEKDAY_SHORT[dt.getDay()]}
                           </span>
                           <span className="font-display mt-1.5 text-[length:calc(1.65rem*var(--display-scale))] leading-none">{dt.getDate()}</span>
                           <span className={clsx("mt-1 text-[12px]", on ? "text-accent-ink/80" : "text-muted")}>
@@ -543,9 +541,7 @@ export function BookingForm() {
                     })}
                   </div>
                 ) : (
-                  <p className="text-[14.5px] text-muted">
-                    There are no open days in the next few weeks. Call {settings.contact.phone} and we will find a time.
-                  </p>
+                  <p className="text-[14.5px] text-muted">{fill(copy.bookNoDays, { phone: settings.contact.phone })}</p>
                 )}
               </fieldset>
 
@@ -555,12 +551,12 @@ export function BookingForm() {
                 aria-describedby={errors.time ? "time-error" : undefined}
                 className="focus:outline-none"
               >
-                <legend className={clsx(LABEL, "mb-3 text-muted")}>Time</legend>
+                <legend className={clsx(LABEL, "mb-3 text-muted")}>{copy.bookTime}</legend>
                 {!service ? (
-                  <p className="text-[14.5px] text-muted">Choose a service first and the free times will show here.</p>
+                  <p className="text-[14.5px] text-muted">{copy.bookPickServiceFirst}</p>
                 ) : periods.length === 0 ? (
                   <p className="text-[14.5px] text-muted">
-                    Nothing free on {formatDateShort(date)} for {service.name.toLowerCase()}. Try another day.
+                    {fill(copy.bookNothingFree, { date: formatDateShort(date), service: service.name.toLowerCase() })}
                   </p>
                 ) : (
                   <div className="flex flex-col gap-5">
@@ -606,21 +602,21 @@ export function BookingForm() {
             </div>
           </Step>
 
-          <Step id="details" n={total} total={total} title="Your details" done={detailsDone}>
+          <Step id="details" n={total} total={total} title={copy.bookStepDetails} done={detailsDone}>
             {customer && (
               <p className="mb-5 text-[14px] text-muted">
-                Signed in as <span className="text-ink">{customer.email}</span>.{" "}
+                {fill(copy.bookSignedIn, { email: customer.email })}{" "}
                 <button
                   type="button"
                   onClick={signOutCustomer}
                   className="cursor-pointer font-medium text-accent hover:text-accent-hover"
                 >
-                  Not you? Sign out
+                  {copy.bookSignOut}
                 </button>
               </p>
             )}
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Name" htmlFor="name" error={errors.name}>
+              <Field label={copy.bookName} htmlFor="name" error={errors.name}>
                 <Input
                   ref={nameRef}
                   id="name"
@@ -635,7 +631,7 @@ export function BookingForm() {
                   }}
                 />
               </Field>
-              <Field label="Phone" htmlFor="phone" error={errors.phone} hint="We confirm by text or call.">
+              <Field label={copy.bookPhone} htmlFor="phone" error={errors.phone} hint={copy.bookPhoneHint || undefined}>
                 <Input
                   ref={phoneRef}
                   id="phone"
@@ -644,7 +640,7 @@ export function BookingForm() {
                   autoComplete="tel"
                   required
                   aria-invalid={!!errors.phone}
-                  aria-describedby={errors.phone ? "phone-error" : "phone-hint"}
+                  aria-describedby={errors.phone ? "phone-error" : copy.bookPhoneHint ? "phone-hint" : undefined}
                   value={phone}
                   onChange={(e) => {
                     setPhone(e.target.value);
@@ -652,10 +648,10 @@ export function BookingForm() {
                   }}
                 />
               </Field>
-              <Field label="Anything we should know (optional)" htmlFor="note" className="sm:col-span-2">
+              <Field label={copy.bookNote} htmlFor="note" className="sm:col-span-2">
                 <Textarea
                   id="note"
-                  placeholder="Allergies, a reference photo you will bring, running late from work…"
+                  placeholder={copy.bookNotePlaceholder}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
@@ -667,23 +663,23 @@ export function BookingForm() {
         <aside className="lg:col-span-5">
           <Reveal y={16} delay={0.1} amount={0} className="lg:sticky lg:top-20">
             <div className="rounded-[18px] border border-line bg-surface p-7 md:p-8">
-              <p className={clsx(LABEL, "text-accent")}>Summary</p>
-              <h2 className="font-script mt-1 text-script-md text-ink">Your visit</h2>
+              {copy.bookSummaryLabel && <p className={clsx(LABEL, "text-accent")}>{copy.bookSummaryLabel}</p>}
+              <h2 className="font-script mt-1 text-script-md text-ink">{copy.bookSummaryTitle}</h2>
               <dl className="hairline-t mt-5">
-                <SummaryRow label="Service" value={service?.name} />
-                <SummaryRow label="Takes" value={service && formatDuration(service.durationMin)} />
-                {staffOn && <SummaryRow label="With" value={staffName} />}
-                <SummaryRow label="Day" value={date && (date === today ? "Today" : formatDateShort(date))} />
-                <SummaryRow label="Time" value={time && `${formatTime(time)} – ${formatTime(end)}`} />
+                <SummaryRow label={copy.bookRowService} value={service?.name} />
+                <SummaryRow label={copy.bookRowTakes} value={service && formatDuration(service.durationMin)} />
+                {staffOn && <SummaryRow label={copy.bookRowWith} value={staffName} />}
+                <SummaryRow label={copy.bookRowDay} value={date && (date === today ? copy.bookToday : formatDateShort(date))} />
+                <SummaryRow label={copy.bookRowTime} value={time && `${formatTime(time)} – ${formatTime(end)}`} />
               </dl>
               <div className="mt-6 flex items-baseline justify-between gap-6">
-                <p className="text-[14px] text-muted">To pay at the desk</p>
+                <p className="text-[14px] text-muted">{copy.bookToPay}</p>
                 <p className="tabular font-display text-[length:calc(2.1rem*var(--display-scale))] leading-none text-ink">
                   {service ? formatMoney(service.price) : "—"}
                 </p>
               </div>
               <Button type="submit" size="lg" className="mt-7 w-full" disabled={!service}>
-                Request this time
+                {copy.bookSubmit}
               </Button>
               <p aria-live="polite" className="mt-3.5 text-center text-[13px] leading-[1.55] text-muted">
                 {hint}

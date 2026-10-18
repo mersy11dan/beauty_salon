@@ -1,9 +1,10 @@
 export function formatMoney(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
-  }).format(amount);
+  const opts = { style: "currency", maximumFractionDigits: amount % 1 === 0 ? 0 : 2 } as const;
+  try {
+    return new Intl.NumberFormat("en-US", { ...opts, currency }).format(amount);
+  } catch {
+    return new Intl.NumberFormat("en-US", { ...opts, currency: "USD" }).format(amount);
+  }
 }
 
 export function uid(prefix = "id") {

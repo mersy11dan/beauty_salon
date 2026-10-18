@@ -25,6 +25,8 @@ import type {
 
 type Accounts = typeof DEMO_ACCOUNTS;
 
+export type ListKey = "services" | "staff" | "portfolio" | "reviews" | "offers";
+
 type Actions = {
   updateSettings: (patch: Partial<Settings>) => void;
   setTheme: (patch: Partial<Theme>) => void;
@@ -40,6 +42,8 @@ type Actions = {
   removeReview: (id: string) => void;
   upsertOffer: (item: Offer) => void;
   removeOffer: (id: string) => void;
+  /** Swaps an item with its neighbour; the public site shows lists in this order. */
+  moveItem: (list: ListKey, id: string, dir: -1 | 1) => void;
 
   createAppointment: (
     input: Omit<Appointment, "id" | "status" | "createdAt">,
@@ -113,6 +117,15 @@ export const useSalonStore = create<SalonState>()(
       removeReview: (id) => set((s) => ({ reviews: s.reviews.filter((x) => x.id !== id) })),
       upsertOffer: (item) => set((s) => ({ offers: upsert(s.offers, item) })),
       removeOffer: (id) => set((s) => ({ offers: s.offers.filter((x) => x.id !== id) })),
+      moveItem: (list, id, dir) =>
+        set((s) => {
+          const items: { id: string }[] = s[list].slice();
+          const i = items.findIndex((x) => x.id === id);
+          const j = i + dir;
+          if (i < 0 || j < 0 || j >= items.length) return {};
+          [items[i], items[j]] = [items[j], items[i]];
+          return { [list]: items } as Partial<SalonState>;
+        }),
 
       createAppointment: (input) => {
         const apt: Appointment = {

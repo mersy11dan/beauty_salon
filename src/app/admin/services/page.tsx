@@ -3,7 +3,8 @@
 import { EntityEditor } from "@/components/ops/entity-editor";
 import { OpsTitle } from "@/components/ops/ops-shell";
 import { formatDuration } from "@/lib/dates";
-import { formatMoney, uid } from "@/lib/format";
+import { uid } from "@/lib/format";
+import { useMoney } from "@/lib/site-hooks";
 import { useSalonStore } from "@/lib/store";
 import type { Service } from "@/lib/types";
 
@@ -11,10 +12,12 @@ export default function AdminServicesPage() {
   const services = useSalonStore((s) => s.services);
   const upsert = useSalonStore((s) => s.upsertService);
   const remove = useSalonStore((s) => s.removeService);
+  const move = useSalonStore((s) => s.moveItem);
+  const formatMoney = useMoney();
 
   return (
     <>
-      <OpsTitle title="Services" intro="The public price list. Duration decides which booking times are offered." />
+      <OpsTitle title="Services" intro="The public price list, in the order shown here. Duration decides which booking times are offered. The first six also appear on the homepage." />
       <EntityEditor<Service>
         items={services}
         fields={[
@@ -29,6 +32,7 @@ export default function AdminServicesPage() {
         subtitle={(s) => `${s.category} · ${formatDuration(s.durationMin)} · ${formatMoney(s.price)}`}
         onSave={upsert}
         onRemove={remove}
+        onMove={(id, dir) => move("services", id, dir)}
         addLabel="Add a service"
       />
     </>

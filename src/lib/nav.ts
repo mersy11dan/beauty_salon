@@ -1,19 +1,20 @@
+import { DEFAULT_COPY, type Copy } from "./copy";
 import type { ModuleKey, Modules } from "./types";
 
 export type NavItem = { href: string; label: string; module: ModuleKey | null };
 
-const ALL: NavItem[] = [
-  { href: "/services", label: "Services", module: "services" },
-  { href: "/portfolio", label: "Portfolio", module: "portfolio" },
-  { href: "/team", label: "Team", module: "staff" },
-  { href: "/offers", label: "Offers", module: "offers" },
-  { href: "/reviews", label: "Reviews", module: "reviews" },
-  { href: "/#visit", label: "Visit", module: null },
-  { href: "/book", label: "Book", module: "booking" },
+const ALL: { href: string; label: keyof Copy; module: ModuleKey | null }[] = [
+  { href: "/services", label: "navServices", module: "services" },
+  { href: "/portfolio", label: "navPortfolio", module: "portfolio" },
+  { href: "/team", label: "navTeam", module: "staff" },
+  { href: "/offers", label: "navOffers", module: "offers" },
+  { href: "/reviews", label: "navReviews", module: "reviews" },
+  { href: "/#visit", label: "navVisit", module: null },
+  { href: "/book", label: "navBook", module: "booking" },
 ];
 
-export function navFor(modules: Modules): NavItem[] {
-  return ALL.filter((i) => i.module === null || modules[i.module]);
+export function navFor(modules: Modules, copy: Copy = DEFAULT_COPY): NavItem[] {
+  return ALL.filter((i) => i.module === null || modules[i.module]).map((i) => ({ ...i, label: copy[i.label] }));
 }
 
 export const MODULE_META: Record<

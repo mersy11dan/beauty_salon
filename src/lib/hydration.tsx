@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { DocumentMeta } from "@/components/site/document-meta";
 import { useSalonStore } from "./store";
 
 const HydratedContext = createContext(false);
@@ -19,7 +20,12 @@ export function StoreHydrator({ children }: { children: React.ReactNode }) {
     return unsub;
   }, []);
 
-  return <HydratedContext.Provider value={hydrated}>{children}</HydratedContext.Provider>;
+  return (
+    <HydratedContext.Provider value={hydrated}>
+      {hydrated && <DocumentMeta />}
+      {children}
+    </HydratedContext.Provider>
+  );
 }
 
 export const useHydrated = () => useContext(HydratedContext);

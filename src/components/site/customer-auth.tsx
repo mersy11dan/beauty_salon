@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { useHydrated } from "@/lib/hydration";
 import { DEMO_CUSTOMER } from "@/lib/seed";
+import { useCopy } from "@/lib/site-hooks";
 import { useCustomer, useSalonStore } from "@/lib/store";
 import { PageTitle } from "./section";
 
@@ -40,6 +41,8 @@ export function CustomerAuth() {
   const customer = useCustomer();
   const signInCustomer = useSalonStore((s) => s.signInCustomer);
   const createCustomer = useSalonStore((s) => s.createCustomer);
+  const demoHints = useSalonStore((s) => s.settings.demoHints);
+  const copy = useCopy();
 
   const next = safeNext(params.get("next"));
   const [mode, setMode] = useState<Mode>(params.get("mode") === "create" ? "create" : "sign-in");
@@ -64,37 +67,34 @@ export function CustomerAuth() {
   function signIn(e: React.FormEvent) {
     e.preventDefault();
     if (!signInCustomer(email, password)) {
-      setErrors({ password: "That email and password do not match." });
+      setErrors({ password: copy.accountErrMatch });
     }
   }
 
   function create(e: React.FormEvent) {
     e.preventDefault();
     const found: Errors = {};
-    if (!name.trim()) found.name = "Add the name we should ask for.";
-    if (phone.replace(/\D/g, "").length < 7) found.phone = "Add a phone number we can reach you on.";
-    if (!EMAIL_RE.test(email.trim())) found.email = "Add an email address, like name@example.com.";
-    if (password.length < 6) found.password = "Use at least 6 characters.";
+    if (!name.trim()) found.name = copy.accountErrName;
+    if (phone.replace(/\D/g, "").length < 7) found.phone = copy.accountErrPhone;
+    if (!EMAIL_RE.test(email.trim())) found.email = copy.accountErrEmail;
+    if (password.length < 6) found.password = copy.accountErrPassword;
     setErrors(found);
     if (Object.keys(found).length) return;
     if (!createCustomer({ name, phone, email, password })) {
-      setErrors({ email: "There is already an account with this email. Sign in instead." });
+      setErrors({ email: copy.accountErrExists });
     }
   }
 
   return (
     <>
-      <PageTitle
-        title="Before you book"
-        intro="Sign in, or create an account if it is your first time. We keep your details so the next booking takes seconds."
-      />
+      <PageTitle title={copy.accountTitle} intro={copy.accountIntro} />
       <div className="mx-auto max-w-6xl px-6 pb-24">
         <div className="max-w-md rounded-[16px] bg-surface p-7 shadow-[0_10px_30px_-18px_rgba(30,24,28,0.25)] md:p-8">
           <div role="group" aria-label="Account" className="grid grid-cols-2 gap-1 rounded-full border border-line-strong p-1">
             {(
               [
-                ["sign-in", "Sign in"],
-                ["create", "Create account"],
+                ["sign-in", copy.accountTabSignIn],
+                ["create", copy.accountTabCreate],
               ] as const
             ).map(([m, label]) => (
               <button
@@ -114,10 +114,10 @@ export function CustomerAuth() {
 
           {mode === "sign-in" ? (
             <form onSubmit={signIn} noValidate className="mt-7 flex flex-col gap-5">
-              <Field label="Email" htmlFor="signin-email">
+              <Field label={copy.accountEmail} htmlFor="signin-email">
                 <Input id="signin-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </Field>
-              <Field label="Password" htmlFor="signin-password" error={errors.password}>
+              <Field label={copy.accountPassword} htmlFor="signin-password" error={errors.password}>
                 <Input
                   id="signin-password"
                   type="password"
@@ -128,34 +128,36 @@ export function CustomerAuth() {
                 />
               </Field>
               <Button type="submit" size="lg" className="mt-1 w-full">
-                Sign in and continue
+                {copy.accountSignInButton}
               </Button>
               <p className="text-center text-[14px] text-muted">
-                First time here?{" "}
+                {copy.accountFirstTime}{" "}
                 <button type="button" onClick={() => switchTo("create")} className={TEXT_BUTTON}>
-                  Create an account
+                  {copy.accountCreateLink}
                 </button>
               </p>
-              <div className="hairline-t pt-5 text-[13px] text-muted">
-                <p>
-                  Demo guest:{" "}
-                  <button
-                    type="button"
-                    className="cursor-pointer text-ink hover:text-accent"
-                    onClick={() => {
-                      setEmail(DEMO_CUSTOMER.email);
-                      setPassword(DEMO_CUSTOMER.password);
-                    }}
-                  >
-                    {DEMO_CUSTOMER.email} · {DEMO_CUSTOMER.password}
-                  </button>
-                </p>
-                <p className="mt-1">Select it to fill the form.</p>
-              </div>
+              {demoHints && (
+                <div className="hairline-t pt-5 text-[13px] text-muted">
+                  <p>
+                    Demo guest:{" "}
+                    <button
+                      type="button"
+                      className="cursor-pointer text-ink hover:text-accent"
+                      onClick={() => {
+                        setEmail(DEMO_CUSTOMER.email);
+                        setPassword(DEMO_CUSTOMER.password);
+                      }}
+                    >
+                      {DEMO_CUSTOMER.email} · {DEMO_CUSTOMER.password}
+                    </button>
+                  </p>
+                  <p className="mt-1">Select it to fill the form.</p>
+                </div>
+              )}
             </form>
           ) : (
             <form onSubmit={create} noValidate className="mt-7 flex flex-col gap-5">
-              <Field label="Name" htmlFor="create-name" error={errors.name}>
+              <Field label={copy.accountName} htmlFor="create-name" error={errors.name}>
                 <Input
                   id="create-name"
                   autoComplete="name"
@@ -164,18 +166,18 @@ export function CustomerAuth() {
                   onChange={(e) => setName(e.target.value)}
                 />
               </Field>
-              <Field label="Phone" htmlFor="create-phone" error={errors.phone} hint="We confirm bookings by text or call.">
+              <Field label={copy.accountPhone} htmlFor="create-phone" error={errors.phone} hint={copy.accountPhoneHint || undefined}>
                 <Input
                   id="create-phone"
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  {...fieldAria("create-phone", errors.phone, true)}
+                  {...fieldAria("create-phone", errors.phone, !!copy.accountPhoneHint)}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </Field>
-              <Field label="Email" htmlFor="create-email" error={errors.email}>
+              <Field label={copy.accountEmail} htmlFor="create-email" error={errors.email}>
                 <Input
                   id="create-email"
                   type="email"
@@ -185,34 +187,36 @@ export function CustomerAuth() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </Field>
-              <Field label="Password" htmlFor="create-password" error={errors.password} hint="At least 6 characters.">
+              <Field label={copy.accountPassword} htmlFor="create-password" error={errors.password} hint={copy.accountPasswordHint || undefined}>
                 <Input
                   id="create-password"
                   type="password"
                   autoComplete="new-password"
-                  {...fieldAria("create-password", errors.password, true)}
+                  {...fieldAria("create-password", errors.password, !!copy.accountPasswordHint)}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </Field>
               <Button type="submit" size="lg" className="mt-1 w-full">
-                Create account and continue
+                {copy.accountCreateButton}
               </Button>
               <p className="text-center text-[14px] text-muted">
-                Already have an account?{" "}
+                {copy.accountHaveOne}{" "}
                 <button type="button" onClick={() => switchTo("sign-in")} className={TEXT_BUTTON}>
-                  Sign in
+                  {copy.accountSignInLink}
                 </button>
               </p>
             </form>
           )}
         </div>
-        <p className="mt-6 text-[13px] text-muted">
-          Work at the salon?{" "}
-          <Link href="/login" className="text-ink hover:text-accent">
-            Staff sign in
-          </Link>
-        </p>
+        {copy.accountStaff && (
+          <p className="mt-6 text-[13px] text-muted">
+            {copy.accountStaff}{" "}
+            <Link href="/login" className="text-ink hover:text-accent">
+              {copy.accountStaffLink}
+            </Link>
+          </p>
+        )}
       </div>
     </>
   );
