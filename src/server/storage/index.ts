@@ -12,31 +12,34 @@ export type StorageDriver = {
   remove(key: string): Promise<void>;
 };
 
+/** Chosen at runtime, so the build must not try to trace it. */
+const uploadsRoot = () => path.resolve(/*turbopackIgnore: true*/ process.cwd(), env().UPLOADS_DIR);
+
 /** Writes to UPLOADS_DIR and serves through /uploads/... Good for development; serverless disks don't persist. */
 function localDriver(): StorageDriver {
-  const root = path.resolve(process.cwd(), env().UPLOADS_DIR);
+  const root = uploadsRoot();
   return {
     name: "local",
     async put({ id, bytes, ext }) {
       const now = new Date();
       const key = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${id}.${ext}`;
-      const file = path.join(root, key);
-      await mkdir(path.dirname(file), { recursive: true });
-      await writeFile(file, bytes);
+      const file = path.join(/*turbopackIgnore: true*/ root, key);
+      await mkdir(/*turbopackIgnore: true*/ path.dirname(file), { recursive: true });
+      await writeFile(/*turbopackIgnore: true*/ file, bytes);
       return { key, url: `/uploads/${key}` };
     },
     async remove(key) {
       const file = resolveLocalUpload(key);
-      if (file) await rm(file, { force: true });
+      if (file) await rm(/*turbopackIgnore: true*/ file, { force: true });
     },
   };
 }
 
 /** Absolute path for an /uploads key, or null if it tries to leave the uploads folder. */
 export function resolveLocalUpload(key: string) {
-  const root = path.resolve(process.cwd(), env().UPLOADS_DIR);
+  const root = uploadsRoot();
   if (!/^[\w./-]+$/.test(key) || key.split("/").some((s) => s === ".." || s === "." || s === "")) return null;
-  const file = path.resolve(root, key);
+  const file = path.resolve(/*turbopackIgnore: true*/ root, key);
   return file.startsWith(root + path.sep) ? file : null;
 }
 
@@ -44,7 +47,7 @@ export async function readLocalUpload(key: string) {
   const file = resolveLocalUpload(key);
   if (!file) return null;
   try {
-    return await readFile(file);
+    return await readFile(/*turbopackIgnore: true*/ file);
   } catch {
     return null;
   }

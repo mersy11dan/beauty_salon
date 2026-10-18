@@ -4,7 +4,7 @@ import { createDemoOps, createSeedContent } from "@/lib/seed";
 import type { Role } from "@/lib/types";
 import { hashPassword } from "../auth/password";
 import { newId } from "../ids";
-import type { Db } from "./index";
+import type { Db, Tx } from "./index";
 import {
   appointments,
   customers,
@@ -20,7 +20,7 @@ import {
 } from "./schema";
 
 /** Inserts the sample salon (settings, services, team, portfolio, reviews, offers) into empty tables only. */
-export async function seedContent(db: Db) {
+export async function seedContent(db: Db | Tx) {
   const content = createSeedContent();
   const report: string[] = [];
 
@@ -56,7 +56,7 @@ export async function seedContent(db: Db) {
 }
 
 /** Creates the login, or resets its password and role if the email already exists. */
-export async function upsertStaffUser(db: Db, input: { email: string; name: string; role: Role; password: string }) {
+export async function upsertStaffUser(db: Db | Tx, input: { email: string; name: string; role: Role; password: string }) {
   const email = input.email.trim().toLowerCase();
   const passwordHash = await hashPassword(input.password);
   const [row] = await db
@@ -68,7 +68,7 @@ export async function upsertStaffUser(db: Db, input: { email: string; name: stri
 }
 
 /** Demo logins plus a day's worth of sample bookings and payments around today. */
-export async function seedDemo(db: Db) {
+export async function seedDemo(db: Db | Tx) {
   await upsertStaffUser(db, { ...DEMO_ACCOUNTS.admin, role: "admin" });
   await upsertStaffUser(db, { ...DEMO_ACCOUNTS.staff, role: "staff" });
 
@@ -104,14 +104,14 @@ export async function seedDemo(db: Db) {
 }
 
 /** Empties every content, booking, payment and guest table. Staff logins are kept. */
-export async function wipeSalonData(db: Db) {
+export async function wipeSalonData(db: Db | Tx) {
   await db.execute(sql`
     truncate table payments, appointments, staff_services, staff, services, portfolio_items, reviews, offers,
       customer_sessions, customers, site_settings restart identity cascade
   `);
 }
 
-export async function hasAdmin(db: Db) {
+export async function hasAdmin(db: Db | Tx) {
   const [row] = await db.select({ id: staffUsers.id }).from(staffUsers).where(eq(staffUsers.role, "admin")).limit(1);
   return !!row;
 }

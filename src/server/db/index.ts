@@ -4,6 +4,8 @@ import { createSqlClient } from "./client";
 import * as schema from "./schema";
 
 export type Db = PostgresJsDatabase<typeof schema>;
+/** A `db.transaction` handle. Helpers that accept `Db | Tx` work inside or outside a transaction. */
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 // Survives Next.js dev hot reloads, so each edit doesn't open a new pool.
 const globalForDb = globalThis as unknown as { __salonDb?: Db };

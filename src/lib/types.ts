@@ -184,6 +184,9 @@ export type OpsData = {
   payments: Payment[];
 };
 
+/** OpsData plus the first day it fully covers. Earlier days are fetched one at a time. */
+export type OpsSnapshot = OpsData & { since: string };
+
 export type SalonData = PublicData & OpsData;
 
 export type ActionResult<T = null> =

@@ -2,24 +2,22 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { useHydrated } from "@/lib/hydration";
 import { useCustomer } from "@/lib/store";
 
 /** Sends signed-out guests to sign in or create an account, then back to this exact URL. */
 export function CustomerGate({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
-  const hydrated = useHydrated();
   const customer = useCustomer();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
   useEffect(() => {
-    if (!hydrated || customer) return;
+    if (customer) return;
     const qs = params.toString();
     const here = qs ? `${pathname}?${qs}` : pathname;
     router.replace(`/account?next=${encodeURIComponent(here)}`);
-  }, [hydrated, customer, router, pathname, params]);
+  }, [customer, router, pathname, params]);
 
-  if (!hydrated || !customer) return <div aria-busy>{fallback ?? <div className="min-h-[60vh]" />}</div>;
+  if (!customer) return <div aria-busy>{fallback ?? <div className="min-h-[60vh]" />}</div>;
   return <>{children}</>;
 }

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
-import { todayISO } from "@/lib/dates";
-import { useSalonStore } from "@/lib/store";
+import { useOps } from "@/lib/ops-store";
+import { useSalonToday } from "@/lib/store";
 import type { PaymentMethod, PaymentStatus } from "@/lib/types";
 
 export function PaymentForm({
@@ -16,16 +16,19 @@ export function PaymentForm({
   onDone?: () => void;
   onCancel?: () => void;
 }) {
-  const addPayment = useSalonStore((s) => s.addPayment);
+  const addPayment = useOps((s) => s.addPayment);
+  const today = useSalonToday();
   const [amount, setAmount] = useState(initial?.amount?.toString() ?? "");
   const [label, setLabel] = useState(initial?.label ?? "");
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [status, setStatus] = useState<PaymentStatus>("paid");
-  const [date, setDate] = useState(initial?.date ?? todayISO());
+  const [date, setDate] = useState(initial?.date ?? today);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) {
       setError("Enter an amount above zero.");
@@ -35,7 +38,9 @@ export function PaymentForm({
       setError("Add a short label so this line makes sense later.");
       return;
     }
-    addPayment({
+    setError("");
+    setBusy(true);
+    const result = await addPayment({
       amount: Math.round(n * 100) / 100,
       label: label.trim(),
       method,
@@ -43,6 +48,11 @@ export function PaymentForm({
       date,
       appointmentId: initial?.appointmentId ?? null,
     });
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
     onDone?.();
   }
 
@@ -71,15 +81,19 @@ export function PaymentForm({
         <Input id="pay-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
       <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-5">
-        <Button type="submit" size="sm" className="bg-ops-accent text-white hover:bg-black">
-          Save payment
+        <Button type="submit" size="sm" disabled={busy} className="bg-ops-accent text-white hover:bg-black">
+          {busy ? "Saving…" : "Save payment"}
         </Button>
         {onCancel && (
           <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
         )}
-        {error && <p className="text-[13px] text-[#9b2c2c]">{error}</p>}
+        {error && (
+          <p role="alert" className="text-[13px] text-[#9b2c2c]">
+            {error}
+          </p>
+        )}
       </div>
     </form>
   );

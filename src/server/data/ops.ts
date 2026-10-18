@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq, gte, ne, or } from "drizzle-orm";
 import { addDays } from "@/lib/dates";
-import type { Appointment, OpsData, Payment } from "@/lib/types";
+import type { Appointment, OpsSnapshot, Payment } from "@/lib/types";
 import { db } from "../db";
 import { appointments, payments } from "../db/schema";
 
@@ -43,12 +43,13 @@ export const APPOINTMENT_HISTORY_DAYS = 45;
 export const PAYMENT_HISTORY_DAYS = 120;
 
 /** Recent and upcoming bookings plus recent and outstanding payments, for the desk and admin. */
-export async function loadOpsData(today: string): Promise<OpsData> {
+export async function loadOpsData(today: string): Promise<OpsSnapshot> {
+  const since = addDays(today, -APPOINTMENT_HISTORY_DAYS);
   const [apts, pays] = await Promise.all([
     db
       .select()
       .from(appointments)
-      .where(gte(appointments.date, addDays(today, -APPOINTMENT_HISTORY_DAYS)))
+      .where(gte(appointments.date, since))
       .orderBy(asc(appointments.date), asc(appointments.time)),
     db
       .select()
@@ -56,7 +57,7 @@ export async function loadOpsData(today: string): Promise<OpsData> {
       .where(or(gte(payments.date, addDays(today, -PAYMENT_HISTORY_DAYS)), eq(payments.status, "unpaid")))
       .orderBy(desc(payments.date), desc(payments.createdAt)),
   ]);
-  return { appointments: apts.map(toAppointment), payments: pays.map(toPayment) };
+  return { appointments: apts.map(toAppointment), payments: pays.map(toPayment), since };
 }
 
 export async function loadAppointmentsOn(date: string) {

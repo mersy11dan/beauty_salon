@@ -5,8 +5,14 @@ import { isSafeImageSrc } from "@/lib/format";
 const text = (max: number) => z.string().trim().max(max, `Keep it under ${max} characters.`);
 const required = (label: string, max: number) => text(max).min(1, `${label} is required.`);
 
-export const entityId = z.string().regex(/^[a-z]{2,8}_[A-Za-z0-9_-]{3,40}$/, "Invalid id.");
-export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date like 2026-10-18.");
+export const entityId = z.string().regex(/^[a-z]{2,8}_[A-Za-z0-9_-]{1,48}$/, "Invalid id.");
+export const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date like 2026-10-18.")
+  .refine((v) => {
+    const d = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  }, "That date doesn't exist.");
 export const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 09:30.");
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a 6-digit colour like #6E2B3F.");
 const imageSrc = z.string().max(2000).refine((v) => v === "" || isSafeImageSrc(v), "Upload the photo again.");
@@ -124,7 +130,7 @@ export const paymentSchema = z.object({
   method: z.enum(["cash", "card", "transfer"]),
   status: z.enum(["paid", "unpaid"]),
   date: isoDate,
-  appointmentId: z.string().max(80).nullable(),
+  appointmentId: entityId.nullable(),
 });
 
 /** First zod issue as a short sentence, plus the top-level field it belongs to. */

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { Toggle } from "@/components/ui/field";
-import { todayISO } from "@/lib/dates";
 import { MODULE_META } from "@/lib/nav";
-import { useSalonStore } from "@/lib/store";
+import { useOps } from "@/lib/ops-store";
+import { useSalonStore, useSalonToday } from "@/lib/store";
 import type { ModuleKey } from "@/lib/types";
 
 const ORDER: ModuleKey[] = ["services", "booking", "staff", "portfolio", "reviews", "offers", "ledger"];
@@ -13,8 +13,8 @@ const ORDER: ModuleKey[] = ["services", "booking", "staff", "portfolio", "review
 export default function AdminOverview() {
   const modules = useSalonStore((s) => s.settings.modules);
   const setModule = useSalonStore((s) => s.setModule);
-  const appointments = useSalonStore((s) => s.appointments);
-  const today = todayISO();
+  const appointments = useOps((s) => s.appointments);
+  const today = useSalonToday();
   const requested = appointments.filter((a) => a.status === "requested" && a.date >= today).length;
   const todayCount = appointments.filter((a) => a.date === today && a.status !== "cancelled").length;
   const onCount = ORDER.filter((k) => modules[k]).length;
