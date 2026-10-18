@@ -264,10 +264,12 @@ export function EntityForm<T extends object>({
   );
 }
 
+const formatNumber = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
+
 /** Keeps what was typed ("12.", "") while the parent holds a number, so decimals can be entered. */
 function NumberInput({ id, value, onChange }: { id: string; value: number; onChange: (n: number) => void }) {
-  const [draft, setDraft] = useState(String(value));
-  const shown = Number(draft || 0) === value ? draft : String(value);
+  const [draft, setDraft] = useState(() => formatNumber(value));
+  const shown = Number(draft || 0) === value ? draft : formatNumber(value);
   return (
     <Input
       id={id}
