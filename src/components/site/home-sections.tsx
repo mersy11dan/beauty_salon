@@ -198,7 +198,7 @@ export function OffersBand() {
       <Reveal>
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-script text-script-md text-ink">{first.title}</p>
+            <p className="font-script text-script-md text-balance text-ink">{first.title}</p>
             <p className="mt-1 text-[15px] text-muted">
               {first.detail} Until {formatDateShort(first.until)}.
             </p>
