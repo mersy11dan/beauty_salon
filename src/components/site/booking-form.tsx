@@ -17,13 +17,12 @@ import {
   hhmmOf,
   minutesOf,
   MONTHS_SHORT,
-  todayISO,
   WEEKDAY_SHORT,
 } from "@/lib/dates";
 import { formatMoney, PAYMENT_NOTE } from "@/lib/format";
 import { checkPhone, formatPhone, parsePhone, phoneHint, telHref, type PhoneValue } from "@/lib/phone";
-import { availableSlots, upcomingOpenDates } from "@/lib/slots";
-import { useCustomer, useSalonStore } from "@/lib/store";
+import { upcomingOpenDates } from "@/lib/slots";
+import { useCustomer, useSalonStore, useSalonToday } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
 import { checkName } from "@/lib/validation";
 import { Avatar } from "./home-sections";
@@ -160,19 +159,46 @@ function SummaryRow({ label, value }: { label: string; value?: string | null | f
   );
 }
 
-type Errors = { name?: string; phone?: string; time?: string };
+type Errors = { name?: string; phone?: string; time?: string; form?: string };
 
 const phoneError = (v: PhoneValue) => {
   const r = checkPhone(v);
   return r.ok ? undefined : r.error;
 };
 
+type Availability = { key: string; slots: string[]; error?: string };
+
+/** Free start times from the server, which sees every booking without sending anyone's details. */
+function useAvailability(serviceId: string | undefined, staffId: string | null, date: string, nonce: number) {
+  const key = serviceId && date ? `${serviceId}|${staffId ?? ""}|${date}|${nonce}` : "";
+  const [result, setResult] = useState<Availability | null>(null);
+
+  useEffect(() => {
+    if (!key || !serviceId) return;
+    const ctrl = new AbortController();
+    const qs = new URLSearchParams({ serviceId, date, ...(staffId ? { staffId } : {}) });
+    fetch(`/api/availability?${qs}`, { signal: ctrl.signal, cache: "no-store" })
+      .then(async (res) => {
+        const json = (await res.json().catch(() => ({}))) as { slots?: string[]; reason?: string; error?: string };
+        if (!res.ok || !Array.isArray(json.slots)) throw new Error(json.error ?? "Free times couldn't be loaded.");
+        setResult({ key, slots: json.slots, error: json.reason });
+      })
+      .catch((err: unknown) => {
+        if (ctrl.signal.aborted) return;
+        setResult({ key, slots: [], error: err instanceof Error && err.message !== "Failed to fetch" ? err.message : "Free times couldn't be loaded. Check your connection." });
+      });
+    return () => ctrl.abort();
+  }, [key, serviceId, staffId, date]);
+
+  const current = result && result.key === key ? result : null;
+  return { slots: current?.slots ?? [], loading: !!key && !current, error: current?.error };
+}
+
 export function BookingForm() {
   const params = useSearchParams();
   const settings = useSalonStore((s) => s.settings);
   const services = useSalonStore((s) => s.services);
   const staff = useSalonStore((s) => s.staff);
-  const appointments = useSalonStore((s) => s.appointments);
   const createAppointment = useSalonStore((s) => s.createAppointment);
   const customer = useCustomer();
   const signOutCustomer = useSalonStore((s) => s.signOutCustomer);
@@ -189,6 +215,8 @@ export function BookingForm() {
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [done, setDone] = useState<Appointment | null>(null);
+  const [sending, setSending] = useState(false);
+  const [nonce, setNonce] = useState(0);
 
   const timeRef = useRef<HTMLFieldSetElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -214,26 +242,13 @@ export function BookingForm() {
   // Derived rather than synced: a stale choice simply falls back.
   const staffId = rawStaffId !== ANYONE && !eligibleStaff.some((m) => m.id === rawStaffId) ? ANYONE : rawStaffId;
 
-  const today = todayISO();
+  const today = useSalonToday();
   const dates = useMemo(() => upcomingOpenDates(settings.hours, today, 10), [settings.hours, today]);
-  const date = rawDate || dates[0] || "";
+  const date = rawDate && dates.includes(rawDate) ? rawDate : dates[0] || "";
+  const chosenStaffId = staffOn && staffId !== ANYONE ? staffId : null;
 
-  const slots = useMemo(() => {
-    if (!service || !date) return [];
-    const now = new Date();
-    const notBefore =
-      date === today ? hhmmOf(Math.ceil((now.getHours() * 60 + now.getMinutes()) / 30) * 30) : undefined;
-    return availableSlots({
-      date,
-      durationMin: service.durationMin,
-      hours: settings.hours,
-      appointments,
-      staffId: staffOn && staffId !== ANYONE ? staffId : null,
-      staffPool: staffOn ? eligibleStaff.map((m) => m.id) : [],
-      capacity: settings.capacity,
-      notBefore,
-    });
-  }, [service, date, today, settings.hours, settings.capacity, appointments, staffOn, staffId, eligibleStaff]);
+  const availability = useAvailability(service?.id, chosenStaffId, date, nonce);
+  const slots = availability.slots;
 
   const time = slots.includes(rawTime) ? rawTime : "";
 
@@ -258,8 +273,9 @@ export function BookingForm() {
     el.focus({ preventScroll: true });
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (sending) return;
     const next: Errors = {};
     if (!time) next.time = "Pick a time that suits you.";
     next.name = checkName(name);
@@ -271,18 +287,37 @@ export function BookingForm() {
     const checked = checkPhone(phone);
     if (!service || !checked.ok) return;
 
-    const apt = createAppointment({
-      customerId: customer?.id,
+    setSending(true);
+    const result = await createAppointment({
       guestName: name.trim(),
       guestPhone: checked.e164,
       serviceId: service.id,
-      staffId: staffOn && staffId !== ANYONE ? staffId : null,
+      staffId: chosenStaffId,
       date,
       time,
-      durationMin: service.durationMin,
       note: note.trim() || undefined,
     });
-    setDone(apt);
+    setSending(false);
+    if (!result.ok) {
+      if (result.field === "guestName") {
+        setErrors({ name: result.error });
+        return focusInvalid(nameRef.current);
+      }
+      if (result.field === "guestPhone") {
+        setErrors({ phone: result.error });
+        return focusInvalid(phoneRef.current);
+      }
+      if (result.field === "time") {
+        setTime("");
+        setNonce((n) => n + 1);
+        setErrors({ time: result.error });
+        return focusInvalid(timeRef.current);
+      }
+      setErrors({ form: result.error });
+      return;
+    }
+    setDone(result.data);
+    setNonce((n) => n + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -565,6 +600,20 @@ export function BookingForm() {
                 <legend className={clsx(LABEL, "mb-3 text-muted")}>Time</legend>
                 {!service ? (
                   <p className="text-[14.5px] text-muted">Choose a service first and the free times will show here.</p>
+                ) : availability.loading ? (
+                  <div aria-busy className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                    <span className="sr-only">Loading free times…</span>
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <span key={i} aria-hidden className="h-11 animate-pulse rounded-full bg-soft" />
+                    ))}
+                  </div>
+                ) : availability.error ? (
+                  <p className="text-[14.5px] text-muted">
+                    {availability.error}{" "}
+                    <button type="button" onClick={() => setNonce((n) => n + 1)} className="cursor-pointer font-medium text-accent hover:text-accent-hover">
+                      Try again
+                    </button>
+                  </p>
                 ) : periods.length === 0 ? (
                   <p className="text-[14.5px] text-muted">
                     Nothing free on {formatDateShort(date)} for {service.name.toLowerCase()}. Try another day.
@@ -619,7 +668,7 @@ export function BookingForm() {
                 Signed in as <span className="text-ink">{customer.email}</span>.{" "}
                 <button
                   type="button"
-                  onClick={signOutCustomer}
+                  onClick={() => void signOutCustomer()}
                   className="cursor-pointer font-medium text-accent hover:text-accent-hover"
                 >
                   Not you? Sign out
@@ -688,9 +737,14 @@ export function BookingForm() {
                   {service ? formatMoney(service.price) : "—"}
                 </p>
               </div>
-              <Button type="submit" size="lg" className="mt-7 w-full" disabled={!service}>
-                Request this time
+              <Button type="submit" size="lg" className="mt-7 w-full" disabled={!service || sending}>
+                {sending ? "Sending your request…" : "Request this time"}
               </Button>
+              {errors.form && (
+                <p role="alert" className="mt-3.5 text-center text-[13px] leading-[1.55] text-[#9b2c2c]">
+                  {errors.form}
+                </p>
+              )}
               <p aria-live="polite" className="mt-3.5 text-center text-[13px] leading-[1.55] text-muted">
                 {hint}
               </p>

@@ -35,7 +35,7 @@ function distance(a: string, b: string) {
   return row[b.length];
 }
 
-/** "maya@gmial.com" → "maya@gmail.com". Only for near-misses of the big providers. */
+/** "selam@gmial.com" → "selam@gmail.com". Only for near-misses of the big providers. */
 export function suggestEmail(raw: string): string | null {
   const v = raw.trim().toLowerCase();
   const at = v.lastIndexOf("@");
@@ -55,10 +55,13 @@ export function checkName(raw: string): string | undefined {
   return undefined;
 }
 
-export const PASSWORD_MIN = 6;
+/** Shared with the server, which enforces the same limits. */
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX = 200;
 
 export function checkNewPassword(raw: string): string | undefined {
   if (!raw) return "Choose a password.";
   if (raw.length < PASSWORD_MIN) return `Use at least ${PASSWORD_MIN} characters.`;
+  if (raw.length > PASSWORD_MAX) return `Keep it under ${PASSWORD_MAX} characters.`;
   return undefined;
 }

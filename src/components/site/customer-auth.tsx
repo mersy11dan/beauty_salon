@@ -7,9 +7,9 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { useHydrated } from "@/lib/hydration";
+import { DEMO_CUSTOMER } from "@/lib/demo";
+import { safeNext } from "@/lib/format";
 import { checkPhone, DEFAULT_COUNTRY, phoneHint, type PhoneValue } from "@/lib/phone";
-import { DEMO_CUSTOMER } from "@/lib/seed";
 import { useCustomer, useSalonStore } from "@/lib/store";
 import { checkEmail, checkName, checkNewPassword, PASSWORD_MIN, suggestEmail } from "@/lib/validation";
 import { PageTitle } from "./section";
@@ -18,12 +18,6 @@ type Mode = "sign-in" | "create";
 
 type Key = "name" | "phone" | "email" | "password";
 type Errors = Partial<Record<Key, string>>;
-
-/** Same-site paths only, so `?next=` can't send anyone to another origin or a `javascript:` URL. */
-function safeNext(raw: string | null) {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return "/book";
-  return raw;
-}
 
 /** Links an input to the `${id}-error` / `${id}-hint` text that `Field` renders. */
 function fieldAria(id: string, error?: string, hasHint = false) {
@@ -38,28 +32,29 @@ const TEXT_BUTTON = "cursor-pointer font-medium text-accent hover:text-accent-ho
 export function CustomerAuth() {
   const router = useRouter();
   const params = useSearchParams();
-  const hydrated = useHydrated();
   const customer = useCustomer();
+  const demoMode = useSalonStore((s) => s.demoMode);
   const signInCustomer = useSalonStore((s) => s.signInCustomer);
-  const createCustomer = useSalonStore((s) => s.createCustomer);
+  const signUpCustomer = useSalonStore((s) => s.signUpCustomer);
 
-  const next = safeNext(params.get("next"));
+  const next = safeNext(params.get("next"), "/book");
   const [mode, setMode] = useState<Mode>(params.get("mode") === "create" ? "create" : "sign-in");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState<PhoneValue>({ country: DEFAULT_COUNTRY, number: "" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
+  const [busy, setBusy] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (hydrated && customer) router.replace(next);
-  }, [hydrated, customer, router, next]);
+    if (customer) router.replace(next);
+  }, [customer, router, next]);
 
-  if (!hydrated || customer) return <div className="min-h-[60vh]" aria-busy />;
+  if (customer) return <div className="min-h-[60vh]" aria-busy />;
 
   const validators: Record<Key, () => string | undefined> = {
     name: () => checkName(name),
@@ -90,37 +85,50 @@ export function CustomerAuth() {
     setPassword("");
   }
 
+  function focusField(key: Key) {
+    const fields = { name: nameRef, phone: phoneRef, email: emailRef, password: passwordRef };
+    fields[key].current?.focus();
+  }
+
   function firstInvalid(found: Errors, order: Key[]) {
     const key = order.find((k) => found[k]);
     if (!key) return false;
-    const fields = { name: nameRef, phone: phoneRef, email: emailRef, password: passwordRef };
-    fields[key].current?.focus();
+    focusField(key);
     return true;
   }
 
-  function signIn(e: React.FormEvent) {
+  /** Server errors name the field they belong to; anything else shows under the password. */
+  function showServerError(error: string, field?: string) {
+    const key: Key = field === "name" || field === "phone" || field === "email" ? field : "password";
+    setErrors({ [key]: error });
+    focusField(key);
+  }
+
+  async function signIn(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     const found: Errors = { email: validators.email(), password: validators.password() };
     setErrors(found);
     if (firstInvalid(found, ["email", "password"])) return;
-    if (!signInCustomer(email, password)) {
-      setErrors({ password: "That email and password do not match." });
-      passwordRef.current?.focus();
-    }
+    setBusy(true);
+    const result = await signInCustomer(email, password);
+    setBusy(false);
+    if (!result.ok) showServerError(result.error, result.field);
   }
 
-  function create(e: React.FormEvent) {
+  async function create(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     const order: Key[] = ["name", "phone", "email", "password"];
     const found = Object.fromEntries(order.map((k) => [k, validators[k]()])) as Errors;
     setErrors(found);
     if (firstInvalid(found, order)) return;
     const checked = checkPhone(phone);
     if (!checked.ok) return;
-    if (!createCustomer({ name, phone: checked.e164, email, password })) {
-      setErrors({ email: "There is already an account with this email. Sign in instead." });
-      emailRef.current?.focus();
-    }
+    setBusy(true);
+    const result = await signUpCustomer({ name, phone: checked.e164, email, password });
+    setBusy(false);
+    if (!result.ok) showServerError(result.error, result.field);
   }
 
   const suggestion = errors.email ? null : suggestEmail(email);
@@ -202,8 +210,8 @@ export function CustomerAuth() {
                   }}
                 />
               </Field>
-              <Button type="submit" size="lg" className="mt-1 w-full">
-                Sign in and continue
+              <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
+                {busy ? "Signing in…" : "Sign in and continue"}
               </Button>
               <p className="text-center text-[14px] text-muted">
                 First time here?{" "}
@@ -211,6 +219,7 @@ export function CustomerAuth() {
                   Create an account
                 </button>
               </p>
+              {demoMode && (
               <div className="hairline-t pt-5 text-[13px] text-muted">
                 <p>
                   Demo guest:{" "}
@@ -228,6 +237,7 @@ export function CustomerAuth() {
                 </p>
                 <p className="mt-1">Select it to fill the form.</p>
               </div>
+              )}
             </form>
           ) : (
             <form onSubmit={create} noValidate className="mt-7 flex flex-col gap-5">
@@ -279,8 +289,8 @@ export function CustomerAuth() {
                   onBlur={blurCheck("password", !!password)}
                 />
               </Field>
-              <Button type="submit" size="lg" className="mt-1 w-full">
-                Create account and continue
+              <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
+                {busy ? "Creating your account…" : "Create account and continue"}
               </Button>
               <p className="text-center text-[14px] text-muted">
                 Already have an account?{" "}

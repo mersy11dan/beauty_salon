@@ -1,12 +1,8 @@
 import { addDays, todayISO } from "./dates";
-import type { Hours, PortfolioItem, SalonData, Service } from "./types";
+import { DEMO_CUSTOMER } from "./demo";
+import type { Appointment, Hours, Payment, PortfolioItem, PublicData, Service } from "./types";
 
-export const DEMO_ACCOUNTS = {
-  admin: { email: "admin@beautysalon.demo", password: "admin1234" },
-  staff: { email: "desk@beautysalon.demo", password: "desk1234" },
-};
-
-export const DEMO_CUSTOMER = { email: "mahlet.girma@example.com", password: "guest1234" };
+export const DEFAULT_TIME_ZONE = "Africa/Addis_Ababa";
 
 /** Long weekdays, a busy Saturday for weddings, and Sunday afternoons after church. */
 const hours: Hours = {
@@ -51,14 +47,6 @@ const CONTACT = {
   mapUrl: "https://maps.google.com/?q=Edna+Mall,+Bole,+Addis+Ababa",
 };
 
-/** Copy that shipped before the Ethiopian edition, so a migration can tell untouched text from an owner's edits. */
-export const LEGACY_COPY = {
-  heroParagraph: "A small salon for nails, hair and makeup. Pick a time that suits you, and pay when you are here.",
-  aboutBody:
-    "We opened because we wanted a salon where you are not passed between people. The person who greets you does your nails, or your hair, or your face, start to finish. Bring a reference photo, or bring nothing and tell us about your week.",
-  customerId: "cus_maya",
-};
-
 function portfolioSet(category: string, folder: string, items: [caption: string, alt: string][]): PortfolioItem[] {
   return items.map(([caption, alt], i) => ({
     id: `pf_${folder}_${i + 1}`,
@@ -77,17 +65,16 @@ function interleave<T>(lists: T[][]): T[] {
   return out;
 }
 
-export function createSeed(): SalonData {
+/** The sample salon: settings and everything shown on the public site. */
+export function createSeedContent(): PublicData {
   const today = todayISO();
-  const tomorrow = addDays(today, 1);
-  const yesterday = addDays(today, -1);
-  const now = new Date().toISOString();
 
   return {
     settings: {
       name: "Beauty Salon",
       tagline: "Nails, hair and makeup, by appointment",
-      logoDataUrl: null,
+      logoUrl: null,
+      timeZone: DEFAULT_TIME_ZONE,
       theme: {
         background: "#F5F1F2",
         ink: "#1E181C",
@@ -200,8 +187,19 @@ export function createSeed(): SalonData {
       { id: "of_2", title: "Wedding season", detail: "Book the bridal trial and the wedding-day makeup together and get 15% off both.", until: addDays(today, 60), active: true },
       { id: "of_3", title: "First visit, 10% off", detail: "For any service on your first appointment. Mention it at the desk.", until: addDays(today, 90), active: true },
     ],
+  };
+}
+
+/** Sample bookings and payments around today, for the demo desk. */
+export function createDemoOps(customerId: string): { appointments: Appointment[]; payments: Payment[] } {
+  const today = todayISO();
+  const tomorrow = addDays(today, 1);
+  const yesterday = addDays(today, -1);
+  const now = new Date().toISOString();
+
+  return {
     appointments: [
-      { id: "apt_1", customerId: "cus_mahlet", guestName: "Mahlet Girma", guestPhone: "+251911223344", serviceId: "svc_gel", staffId: "stf_hiwot", date: today, time: "10:00", durationMin: 60, status: "confirmed", createdAt: now },
+      { id: "apt_1", customerId, guestName: DEMO_CUSTOMER.name, guestPhone: DEMO_CUSTOMER.phone, serviceId: "svc_gel", staffId: "stf_hiwot", date: today, time: "10:00", durationMin: 60, status: "confirmed", createdAt: now },
       { id: "apt_2", guestName: "Ruth Haile", guestPhone: "+251912456789", serviceId: "svc_cut", staffId: "stf_meron", date: today, time: "11:30", durationMin: 60, status: "confirmed", createdAt: now },
       { id: "apt_3", guestName: "Sara Getachew", guestPhone: "+251923118540", serviceId: "svc_daymakeup", staffId: "stf_selam", date: today, time: "14:00", durationMin: 45, status: "requested", note: "Wedding guest, soft look", createdAt: now },
       { id: "apt_4", guestName: "Yonas Mekonnen", guestPhone: "+251700345612", serviceId: "svc_mencut", staffId: "stf_meron", date: today, time: "16:00", durationMin: 30, status: "requested", createdAt: now },
@@ -215,9 +213,6 @@ export function createSeed(): SalonData {
       { id: "pay_1", amount: 500, method: "telebirr", status: "paid", appointmentId: "apt_8", label: "Brow threading and tint · Saron Desta", date: yesterday, createdAt: now },
       { id: "pay_2", amount: 1200, method: "cash", status: "paid", appointmentId: null, label: "Gel manicure · walk-in", date: today, createdAt: now },
       { id: "pay_3", amount: 4500, method: "transfer", status: "unpaid", appointmentId: null, label: "Full-head colour · deposit pending", date: today, createdAt: now },
-    ],
-    customers: [
-      { id: "cus_mahlet", name: "Mahlet Girma", phone: "+251911223344", ...DEMO_CUSTOMER, createdAt: now },
     ],
   };
 }

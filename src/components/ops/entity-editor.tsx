@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import type { ActionResult } from "@/lib/types";
 import { Card } from "./ops-shell";
 import { ImageInput } from "./image-input";
 
@@ -36,13 +37,22 @@ export function EntityEditor<T extends { id: string }>({
   title: (item: T) => string;
   subtitle?: (item: T) => string;
   thumb?: (item: T) => string | null;
-  onSave: (item: T) => void;
-  onRemove: (id: string) => void;
+  onSave: (item: T) => Promise<ActionResult<unknown>>;
+  onRemove: (id: string) => Promise<ActionResult<unknown>>;
   addLabel?: string;
   emptyText?: string;
 }) {
   const [editing, setEditing] = useState<T | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const isNew = editing ? !items.some((i) => i.id === editing.id) : false;
+
+  async function remove(item: T) {
+    if (!window.confirm(`Remove “${title(item) || "this item"}”? This can't be undone.`)) return;
+    setRemoving(item.id);
+    const result = await onRemove(item.id);
+    setRemoving(null);
+    if (result.ok && editing?.id === item.id) setEditing(null);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -53,9 +63,10 @@ export function EntityEditor<T extends { id: string }>({
             value={editing}
             fields={fields}
             onChange={setEditing}
-            onSubmit={() => {
-              onSave(editing);
-              setEditing(null);
+            onSubmit={async () => {
+              const result = await onSave(editing);
+              if (result.ok) setEditing(null);
+              return result;
             }}
             onCancel={() => setEditing(null)}
           />
@@ -70,7 +81,7 @@ export function EntityEditor<T extends { id: string }>({
             {items.map((item) => {
               const t = thumb?.(item);
               return (
-                <li key={item.id} className="flex items-center gap-4 px-5 py-3.5">
+                <li key={item.id} className={clsx("flex items-center gap-4 px-5 py-3.5 transition-opacity", removing === item.id && "opacity-50")}>
                   {thumb && (
                     <span className="h-11 w-11 shrink-0 overflow-hidden rounded-md bg-ops-bg">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -85,7 +96,13 @@ export function EntityEditor<T extends { id: string }>({
                     <button type="button" aria-label="Edit" onClick={() => setEditing({ ...item })} className="rounded-md p-2 text-ops-muted hover:bg-ops-bg hover:text-ops-ink">
                       <Pencil size={15} strokeWidth={1.75} />
                     </button>
-                    <button type="button" aria-label="Remove" onClick={() => onRemove(item.id)} className="rounded-md p-2 text-ops-muted hover:bg-ops-bg hover:text-[#9b2c2c]">
+                    <button
+                      type="button"
+                      aria-label="Remove"
+                      disabled={removing === item.id}
+                      onClick={() => void remove(item)}
+                      className="rounded-md p-2 text-ops-muted hover:bg-ops-bg hover:text-[#9b2c2c]"
+                    >
                       <Trash2 size={15} strokeWidth={1.75} />
                     </button>
                   </div>
@@ -118,18 +135,22 @@ export function EntityForm<T extends object>({
   value: T;
   fields: FieldSpec<T>[];
   onChange: (v: T) => void;
-  onSubmit: () => void;
+  onSubmit: () => Promise<ActionResult<unknown>>;
   onCancel?: () => void;
   submitLabel?: string;
 }) {
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [uploads, setUploads] = useState(0);
+  const busy = saving || uploads > 0;
 
   function set<K extends keyof T>(key: K, v: T[K]) {
     onChange({ ...value, [key]: v });
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     for (const f of fields) {
       const v = value[f.key] as unknown;
       if (f.required && (v === "" || v === null || v === undefined || (Array.isArray(v) && v.length === 0))) {
@@ -138,8 +159,16 @@ export function EntityForm<T extends object>({
       }
     }
     setError("");
-    onSubmit();
+    setSaving(true);
+    const result = await onSubmit();
+    setSaving(false);
+    if (!result.ok) {
+      const label = fields.find((f) => f.key === result.field)?.label;
+      setError(label && !result.error.startsWith(label) ? `${label}: ${result.error}` : result.error);
+    }
   }
+
+  const trackUpload = (on: boolean) => setUploads((n) => Math.max(0, n + (on ? 1 : -1)));
 
   return (
     <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2">
@@ -155,9 +184,7 @@ export function EntityForm<T extends object>({
           case "textarea":
             return wrap(<Textarea id={id} value={(raw as string) ?? ""} onChange={(e) => set(f.key, e.target.value as T[typeof f.key])} />);
           case "number":
-            return wrap(
-              <Input id={id} inputMode="decimal" value={raw === undefined || raw === null ? "" : String(raw)} onChange={(e) => set(f.key, (e.target.value === "" ? 0 : Number(e.target.value)) as T[typeof f.key])} />,
-            );
+            return wrap(<NumberInput id={id} value={typeof raw === "number" ? raw : 0} onChange={(n) => set(f.key, n as T[typeof f.key])} />);
           case "date":
             return wrap(<Input id={id} type="date" value={(raw as string) ?? ""} onChange={(e) => set(f.key, e.target.value as T[typeof f.key])} />);
           case "select":
@@ -206,22 +233,53 @@ export function EntityForm<T extends object>({
             );
           }
           case "image":
-            return wrap(<ImageInput id={id} value={(raw as string | null) ?? null} onChange={(v) => set(f.key, v as T[typeof f.key])} />);
+            return wrap(
+              <ImageInput
+                id={id}
+                value={(raw as string | null) || null}
+                onChange={(v) => set(f.key, (v ?? (f.required ? "" : null)) as T[typeof f.key])}
+                onBusyChange={trackUpload}
+              />,
+            );
           default:
             return wrap(<Input id={id} value={(raw as string) ?? ""} onChange={(e) => set(f.key, e.target.value as T[typeof f.key])} />);
         }
       })}
       <div className="flex items-center gap-2 sm:col-span-2">
-        <Button type="submit" size="sm" className="bg-ops-accent text-white hover:bg-black">
-          {submitLabel}
+        <Button type="submit" size="sm" disabled={busy} className="bg-ops-accent text-white hover:bg-black">
+          {saving ? "Saving…" : uploads > 0 ? "Uploading photo…" : submitLabel}
         </Button>
         {onCancel && (
-          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          <Button type="button" size="sm" variant="ghost" disabled={saving} onClick={onCancel}>
             Cancel
           </Button>
         )}
-        {error && <p className="text-[13px] text-[#9b2c2c]">{error}</p>}
+        {error && (
+          <p role="alert" className="text-[13px] text-[#9b2c2c]">
+            {error}
+          </p>
+        )}
       </div>
     </form>
+  );
+}
+
+/** Keeps what was typed ("12.", "") while the parent holds a number, so decimals can be entered. */
+function NumberInput({ id, value, onChange }: { id: string; value: number; onChange: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  const shown = Number(draft || 0) === value ? draft : String(value);
+  return (
+    <Input
+      id={id}
+      inputMode="decimal"
+      value={shown}
+      onChange={(e) => {
+        const text = e.target.value.replace(",", ".");
+        const n = Number(text || 0);
+        if (!Number.isFinite(n)) return;
+        setDraft(text);
+        onChange(n);
+      }}
+    />
   );
 }
