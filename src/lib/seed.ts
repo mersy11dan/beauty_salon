@@ -6,6 +6,8 @@ export const DEMO_ACCOUNTS = {
   staff: { email: "desk@beautysalon.demo", password: "desk1234" },
 };
 
+export const DEMO_CUSTOMER = { email: "maya.chen@example.com", password: "guest1234" };
+
 const hours: Hours = {
   0: null,
   1: { open: "09:00", close: "19:00" },
@@ -179,7 +181,7 @@ export function createSeed(): SalonData {
       { id: "of_2", title: "First visit, 10% off", detail: "For any service on your first appointment. Mention it at the desk.", until: addDays(today, 60), active: true },
     ],
     appointments: [
-      { id: "apt_1", guestName: "Maya Chen", guestPhone: "+1 555 010 3301", serviceId: "svc_gel", staffId: "stf_amara", date: today, time: "10:00", durationMin: 60, status: "confirmed", createdAt: now },
+      { id: "apt_1", customerId: "cus_maya", guestName: "Maya Chen", guestPhone: "+1 555 010 3301", serviceId: "svc_gel", staffId: "stf_amara", date: today, time: "10:00", durationMin: 60, status: "confirmed", createdAt: now },
       { id: "apt_2", guestName: "Ruth Adeyemi", guestPhone: "+1 555 010 4419", serviceId: "svc_cut", staffId: "stf_lena", date: today, time: "11:30", durationMin: 60, status: "confirmed", createdAt: now },
       { id: "apt_3", guestName: "Sofia Marin", guestPhone: "+1 555 010 7782", serviceId: "svc_daymakeup", staffId: "stf_yara", date: today, time: "14:00", durationMin: 45, status: "requested", note: "Wedding guest, soft look", createdAt: now },
       { id: "apt_4", guestName: "Jonas Berg", guestPhone: "+1 555 010 9023", serviceId: "svc_mencut", staffId: "stf_lena", date: today, time: "16:00", durationMin: 30, status: "requested", createdAt: now },
@@ -192,6 +194,9 @@ export function createSeed(): SalonData {
       { id: "pay_1", amount: 30, method: "card", status: "paid", appointmentId: "apt_7", label: "Brow shape and tint · Noor Rahman", date: yesterday, createdAt: now },
       { id: "pay_2", amount: 55, method: "cash", status: "paid", appointmentId: null, label: "Gel manicure · walk-in", date: yesterday, createdAt: now },
       { id: "pay_3", amount: 140, method: "transfer", status: "unpaid", appointmentId: null, label: "Full-head colour · deposit pending", date: today, createdAt: now },
+    ],
+    customers: [
+      { id: "cus_maya", name: "Maya Chen", phone: "+1 555 010 3301", ...DEMO_CUSTOMER, createdAt: now },
     ],
   };
 }

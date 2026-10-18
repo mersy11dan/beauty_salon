@@ -50,7 +50,7 @@ export default function AccessPage() {
         <Card className="p-5">
           <h2 className="mb-1 text-[15px] font-semibold text-ops-ink">Demo data</h2>
           <p className="mb-4 text-[13.5px] text-ops-muted">
-            This demo keeps everything in this browser. Resetting puts back the sample salon, services, bookings and payments, and clears any colours or words you changed.
+            This demo keeps everything in this browser. Resetting puts back the sample salon, services, bookings, guest accounts and payments, and clears any colours or words you changed.
           </p>
           {confirmReset ? (
             <div className="flex flex-wrap items-center gap-2">

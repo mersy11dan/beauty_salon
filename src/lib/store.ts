@@ -7,6 +7,7 @@ import { createSeed, DEMO_ACCOUNTS } from "./seed";
 import type {
   Appointment,
   AppointmentStatus,
+  Customer,
   ModuleKey,
   Offer,
   Payment,
@@ -52,13 +53,22 @@ type Actions = {
   signOut: () => void;
   setStaffAccount: (email: string, password: string) => void;
 
+  /** Returns null when the email already has an account. */
+  createCustomer: (input: Pick<Customer, "name" | "email" | "phone" | "password">) => Customer | null;
+  signInCustomer: (email: string, password: string) => Customer | null;
+  signOutCustomer: () => void;
+
   resetDemo: () => void;
 };
 
 export type SalonState = SalonData & {
   session: Session;
+  /** The guest signed in on the public site, if any. */
+  customerId: string | null;
   accounts: Accounts;
 } & Actions;
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 function upsert<T extends { id: string }>(list: T[], item: T) {
   const i = list.findIndex((x) => x.id === item.id);
@@ -73,6 +83,7 @@ export const useSalonStore = create<SalonState>()(
     (set, get) => ({
       ...createSeed(),
       session: null,
+      customerId: null,
       accounts: DEMO_ACCOUNTS,
 
       updateSettings: (patch) =>
@@ -142,6 +153,28 @@ export const useSalonStore = create<SalonState>()(
       setStaffAccount: (email, password) =>
         set((s) => ({ accounts: { ...s.accounts, staff: { email, password } } })),
 
+      createCustomer: (input) => {
+        const email = normalizeEmail(input.email);
+        if (get().customers.some((c) => c.email === email)) return null;
+        const customer: Customer = {
+          id: uid("cus"),
+          name: input.name.trim(),
+          email,
+          phone: input.phone.trim(),
+          password: input.password,
+          createdAt: new Date().toISOString(),
+        };
+        set((s) => ({ customers: [...s.customers, customer], customerId: customer.id }));
+        return customer;
+      },
+      signInCustomer: (email, password) => {
+        const e = normalizeEmail(email);
+        const customer = get().customers.find((c) => c.email === e && c.password === password) ?? null;
+        if (customer) set({ customerId: customer.id });
+        return customer;
+      },
+      signOutCustomer: () => set({ customerId: null }),
+
       resetDemo: () => set({ ...createSeed(), accounts: DEMO_ACCOUNTS, session: get().session }),
     }),
     {
@@ -164,7 +197,9 @@ export const useSalonStore = create<SalonState>()(
         offers: s.offers,
         appointments: s.appointments,
         payments: s.payments,
+        customers: s.customers,
         session: s.session,
+        customerId: s.customerId,
         accounts: s.accounts,
       }),
       merge: (persisted, current) => {
@@ -195,3 +230,5 @@ export const useSalonStore = create<SalonState>()(
 export const useSettings = () => useSalonStore((s) => s.settings);
 export const useModules = () => useSalonStore((s) => s.settings.modules);
 export const useSession = () => useSalonStore((s) => s.session);
+export const useCustomer = () =>
+  useSalonStore((s) => (s.customerId ? (s.customers.find((c) => c.id === s.customerId) ?? null) : null));

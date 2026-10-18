@@ -23,7 +23,7 @@ export const MODULE_META: Record<
   services: { label: "Services", description: "Public price list with durations.", href: "/services" },
   portfolio: { label: "Portfolio", description: "Gallery of past work.", href: "/portfolio" },
   staff: { label: "Team", description: "Staff profiles. Booking lets guests pick a person when this is on.", href: "/team" },
-  booking: { label: "Booking", description: "Guests request a time online. Off means the site is brochure only.", href: "/book" },
+  booking: { label: "Booking", description: "Guests sign in or create an account, then request a time online. Off means the site is brochure only.", href: "/book" },
   ledger: { label: "Payment ledger", description: "Staff record cash, card and transfer payments in the desk.", href: null },
   reviews: { label: "Reviews", description: "Customer quotes on the homepage and a reviews page.", href: "/reviews" },
   offers: { label: "Offers", description: "Promotions with an end date.", href: "/offers" },

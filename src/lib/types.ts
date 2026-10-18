@@ -114,6 +114,8 @@ export type AppointmentStatus =
 
 export type Appointment = {
   id: string;
+  /** Set when the guest booked while signed in to their account. */
+  customerId?: string;
   guestName: string;
   guestPhone: string;
   serviceId: string;
@@ -146,6 +148,16 @@ export type Role = "admin" | "staff";
 
 export type Session = { role: Role; email: string } | null;
 
+/** A guest's own account on the public site. Separate from staff and admin logins. */
+export type Customer = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  createdAt: string;
+};
+
 export type SalonData = {
   settings: Settings;
   services: Service[];
@@ -155,4 +167,5 @@ export type SalonData = {
   offers: Offer[];
   appointments: Appointment[];
   payments: Payment[];
+  customers: Customer[];
 };
