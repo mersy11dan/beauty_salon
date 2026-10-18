@@ -218,7 +218,7 @@ function Thumb({
             transition={{ duration: 0.6, ease: EASE_OUT_EXPO }}
           >
             {/* Oversized so the drift never shows the frame's edge. */}
-            <Parallax speed={-0.06} className="h-full w-full motion-safe:scale-[1.14]">
+            <Parallax speed={-0.05} className="h-full w-full motion-safe:scale-[1.14]">
               <RevealZoom className="h-full w-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
