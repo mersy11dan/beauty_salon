@@ -75,7 +75,7 @@ export function CursorLabel({ hidden = false }: { hidden?: boolean }) {
         {label && !hidden && (
           <motion.span
             key={label}
-            className="font-script flex h-full w-full items-center justify-center rounded-full bg-accent pb-1 text-[1.75rem] leading-none text-accent-ink shadow-[0_18px_40px_-18px_color-mix(in_oklab,var(--ink)_60%,transparent)]"
+            className="font-script flex h-full w-full items-center justify-center rounded-full bg-accent pb-1 text-[length:calc(1.75rem*var(--script-scale))] leading-none text-accent-ink shadow-[0_18px_40px_-18px_color-mix(in_oklab,var(--ink)_60%,transparent)]"
             initial={{ opacity: 0, scale: 0.3 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.3, transition: { duration: 0.2 } }}

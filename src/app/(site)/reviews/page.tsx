@@ -23,7 +23,7 @@ export default function ReviewsPage() {
           {reviews.map((r) => (
             <li key={r.id} className="hairline-t py-9 md:py-11">
               <blockquote className="flex flex-col gap-5">
-                <p className="font-display text-[1.4rem] leading-[1.32] text-ink md:text-[1.55rem]">“{r.text}”</p>
+                <p className="font-display text-[length:calc(1.4rem*var(--display-scale))] leading-[1.32] text-ink md:text-[length:calc(1.55rem*var(--display-scale))]">“{r.text}”</p>
                 <footer className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-muted">
                   <Stars value={r.rating} />
                   <span className="text-ink">{r.author}</span>

@@ -32,7 +32,9 @@ export function Wordmark({
     <span
       className={clsx(
         "font-script text-ink",
-        size === "lg" ? "text-[2.75rem] leading-[1.1] md:text-[3.4rem]" : "text-[1.7rem] leading-none",
+        size === "lg"
+          ? "text-[length:calc(2.75rem*var(--script-scale))] leading-[1.1] md:text-[length:calc(3.4rem*var(--script-scale))]"
+          : "text-[length:calc(1.7rem*var(--script-scale))] leading-none",
         className,
       )}
     >
@@ -81,7 +83,7 @@ export function SiteHeader() {
         className={clsx(
           "sticky top-0 z-30 transition-[background-color,box-shadow] duration-500 ease-out-quart",
           stuck
-            ? "bg-white/95 shadow-[0_1px_0_0_var(--line)] backdrop-blur-sm"
+            ? "bg-surface/95 shadow-[0_1px_0_0_var(--line)] backdrop-blur-sm"
             : "bg-transparent",
         )}
       >

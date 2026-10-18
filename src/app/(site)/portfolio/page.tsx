@@ -314,7 +314,7 @@ function Lightbox({
               transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
             >
               <p className="text-[11.5px] font-semibold uppercase tracking-[0.22em] text-bg/60">{item.category}</p>
-              <p className="font-script mt-1 text-[2rem] leading-[1.1] md:text-[2.4rem]">{item.caption}</p>
+              <p className="font-script mt-1 text-[length:calc(2rem*var(--script-scale))] leading-[1.1] md:text-[length:calc(2.4rem*var(--script-scale))]">{item.caption}</p>
               <p className="tabular mt-2 text-[12.5px] text-bg/60">
                 {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
               </p>

@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { mergeSettings } from "./content";
 import { uid } from "./format";
 import { createSeed, DEMO_ACCOUNTS } from "./seed";
 import type {
@@ -204,21 +205,10 @@ export const useSalonStore = create<SalonState>()(
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<SalonState>;
-        const ps = p.settings ?? ({} as Partial<Settings>);
         return {
           ...current,
           ...p,
-          settings: {
-            ...current.settings,
-            ...ps,
-            theme: { ...current.settings.theme, ...ps.theme },
-            modules: { ...current.settings.modules, ...ps.modules },
-            hero: { ...current.settings.hero, ...ps.hero },
-            about: { ...current.settings.about, ...ps.about },
-            contact: { ...current.settings.contact, ...ps.contact },
-            socials: { ...current.settings.socials, ...ps.socials },
-            hours: { ...current.settings.hours, ...ps.hours },
-          },
+          settings: mergeSettings(current.settings, p.settings),
           accounts: { ...current.accounts, ...p.accounts },
         };
       },

@@ -218,7 +218,7 @@ export function ReviewsPreview() {
           <RevealItem key={r.id} y={28}>
             <Tilt max={6} className="h-full">
               <blockquote className="flex h-full flex-col justify-between gap-8 rounded-[18px] border border-line bg-surface p-7 md:p-8">
-                <p className="font-display text-[1.35rem] leading-[1.35] text-ink md:text-[1.5rem]">“{r.text}”</p>
+                <p className="font-display text-[length:calc(1.35rem*var(--display-scale))] leading-[1.35] text-ink md:text-[length:calc(1.5rem*var(--display-scale))]">“{r.text}”</p>
                 <footer className="flex items-center justify-between gap-3 text-[13.5px] text-muted">
                   <span>{r.author}</span>
                   <Stars value={r.rating} />

@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 const MAX_EDGE = 1600;
 
 /** Reads a file, downsizes it on a canvas, and returns a JPEG/PNG data URL small enough for localStorage. */
-async function fileToDataUrl(file: File): Promise<string> {
+async function fileToDataUrl(file: File, maxEdge = MAX_EDGE): Promise<string> {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
@@ -24,11 +24,14 @@ export function ImageInput({
   value,
   onChange,
   aspect = "aspect-[4/3]",
+  maxSize,
 }: {
   id?: string;
   value: string | null;
   onChange: (next: string | null) => void;
   aspect?: string;
+  /** Longest edge in pixels after resizing. */
+  maxSize?: number;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -39,7 +42,7 @@ export function ImageInput({
     setBusy(true);
     setError("");
     try {
-      onChange(await fileToDataUrl(file));
+      onChange(await fileToDataUrl(file, maxSize));
     } catch {
       setError("That file could not be read. Try a JPG or PNG.");
     } finally {

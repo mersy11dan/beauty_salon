@@ -23,6 +23,15 @@ export type Theme = {
   surface: string;
 };
 
+/** Catalog ids from `lib/fonts.ts`. */
+export type FontChoice = {
+  display: string;
+  script: string;
+  body: string;
+};
+
+export type Clock = "12h" | "24h";
+
 export type Socials = {
   facebook: string;
   instagram: string;
@@ -41,7 +50,10 @@ export type Settings = {
   name: string;
   tagline: string;
   logoDataUrl: string | null;
+  /** Browser tab icon. Falls back to the default icon when empty. */
+  faviconDataUrl: string | null;
   theme: Theme;
+  fonts: FontChoice;
   modules: Modules;
   hero: {
     headline: string;
@@ -51,7 +63,23 @@ export type Settings = {
   about: {
     heading: string;
     body: string;
+    /** Up to two photos beside the about text. Empty picks from the portfolio. */
+    photos: string[];
   };
+  /** Only the phrases the admin changed; see `lib/copy.ts`. */
+  copy: Record<string, string>;
+  seo: {
+    /** Browser tab and search result title. Blank uses the salon name. */
+    title: string;
+    description: string;
+  };
+  /** ISO 4217 code, e.g. "USD". */
+  currency: string;
+  clock: Clock;
+  /** Show the demo logins on the sign-in pages. Turn off before handing a site over. */
+  demoHints: boolean;
+  /** Builder steps the admin ticked by hand. */
+  checklist: Record<string, boolean>;
   contact: {
     phone: string;
     email: string;
@@ -169,3 +197,9 @@ export type SalonData = {
   payments: Payment[];
   customers: Customer[];
 };
+
+/** Everything that makes up one salon's website, without bookings, payments or accounts. */
+export type SiteContent = Pick<SalonData, "settings" | "services" | "staff" | "portfolio" | "reviews" | "offers">;
+
+/** "demo" keeps everything in this browser; "live" reads and writes this site's own database. */
+export type DataMode = "demo" | "live";

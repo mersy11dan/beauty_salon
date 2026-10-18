@@ -4,7 +4,8 @@ import { OpsShell } from "@/components/ops/ops-shell";
 
 const NAV = [
   { href: "/admin", label: "Modules", exact: true },
-  { href: "/admin/brand", label: "Brand and colours" },
+  { href: "/admin/brand", label: "Name and logo" },
+  { href: "/admin/look", label: "Colours and fonts" },
   { href: "/admin/content", label: "Content and hours" },
   { href: "/admin/services", label: "Services" },
   { href: "/admin/team", label: "Team" },

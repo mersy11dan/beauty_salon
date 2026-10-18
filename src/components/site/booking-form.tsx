@@ -534,7 +534,7 @@ export function BookingForm() {
                           >
                             {d === today ? "Today" : WEEKDAY_SHORT[dt.getDay()]}
                           </span>
-                          <span className="font-display mt-1.5 text-[1.65rem] leading-none">{dt.getDate()}</span>
+                          <span className="font-display mt-1.5 text-[length:calc(1.65rem*var(--display-scale))] leading-none">{dt.getDate()}</span>
                           <span className={clsx("mt-1 text-[12px]", on ? "text-accent-ink/80" : "text-muted")}>
                             {MONTHS_SHORT[dt.getMonth()]}
                           </span>
@@ -678,7 +678,7 @@ export function BookingForm() {
               </dl>
               <div className="mt-6 flex items-baseline justify-between gap-6">
                 <p className="text-[14px] text-muted">To pay at the desk</p>
-                <p className="tabular font-display text-[2.1rem] leading-none text-ink">
+                <p className="tabular font-display text-[length:calc(2.1rem*var(--display-scale))] leading-none text-ink">
                   {service ? formatMoney(service.price) : "—"}
                 </p>
               </div>

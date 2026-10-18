@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { EASE_OUT_EXPO, Reveal } from "@/components/motion/reveal";
 import { SplitWords } from "@/components/motion/split-text";
 import { Tilt } from "@/components/motion/tilt";
+import { isDarkTheme } from "@/components/site/theme-vars";
 import { ButtonLink } from "@/components/ui/button";
 import { useSalonStore } from "@/lib/store";
 
@@ -15,6 +16,7 @@ export function Hero() {
   const settings = useSalonStore((s) => s.settings);
   const reduce = useReducedMotion();
   const { hero, modules, contact } = settings;
+  const dark = isDarkTheme(settings.theme);
   const slides = hero.slides;
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -118,7 +120,7 @@ export function Hero() {
                 <span
                   key={s.id}
                   className={clsx(
-                    "font-script absolute left-0 top-0 whitespace-nowrap text-[clamp(4.2rem,12vw,9rem)] leading-none text-accent transition-all duration-[1400ms] ease-out-quart",
+                    "font-script absolute left-0 top-0 whitespace-nowrap text-[length:calc(clamp(4.2rem,12vw,9rem)*var(--script-scale))] leading-none text-accent transition-all duration-[1400ms] ease-out-quart",
                     i === index ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
                   )}
                 >
@@ -143,7 +145,9 @@ export function Hero() {
                   aria-hidden={i !== index}
                   draggable={false}
                   className={clsx(
-                    "photo-fade absolute inset-0 h-full w-full select-none object-cover object-[50%_28%] mix-blend-multiply transition-[opacity,transform] duration-[1600ms] ease-out-quart",
+                    "photo-fade absolute inset-0 h-full w-full select-none object-cover object-[50%_28%] transition-[opacity,transform] duration-[1600ms] ease-out-quart",
+                    // Multiply melts a white studio backdrop into a light page; on a dark page it would black the photo out.
+                    !dark && "mix-blend-multiply",
                     i === index ? "scale-100 opacity-100" : "scale-[1.03] opacity-0",
                   )}
                 />

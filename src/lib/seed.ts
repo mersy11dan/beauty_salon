@@ -1,4 +1,6 @@
 import { addDays, todayISO } from "./dates";
+import { DEFAULT_FONTS } from "./fonts";
+import { DEFAULT_THEME } from "./palettes";
 import type { Hours, PortfolioItem, SalonData, Service } from "./types";
 
 export const DEMO_ACCOUNTS = {
@@ -63,12 +65,18 @@ export function createSeed(): SalonData {
       name: "Beauty Salon",
       tagline: "Nails, hair and makeup, by appointment",
       logoDataUrl: null,
-      theme: {
-        background: "#F5F1F2",
-        ink: "#1E181C",
-        accent: "#6E2B3F",
-        surface: "#FFFFFF",
+      faviconDataUrl: null,
+      theme: { ...DEFAULT_THEME },
+      fonts: { ...DEFAULT_FONTS },
+      copy: {},
+      seo: {
+        title: "",
+        description: "Nails, hair and makeup, by appointment.",
       },
+      currency: "USD",
+      clock: "12h",
+      demoHints: true,
+      checklist: {},
       modules: {
         services: true,
         portfolio: true,
@@ -92,6 +100,7 @@ export function createSeed(): SalonData {
         heading: "Three chairs, one small room, no rush.",
         body:
           "We opened because we wanted a salon where you are not passed between people. The person who greets you does your nails, or your hair, or your face, start to finish. Bring a reference photo, or bring nothing and tell us about your week.",
+        photos: [],
       },
       contact: {
         phone: "+1 (555) 014-2200",

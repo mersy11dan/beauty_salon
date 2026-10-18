@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import type { Theme } from "@/lib/types";
+import { resolveFonts } from "@/lib/fonts";
+import type { FontChoice, Theme } from "@/lib/types";
 
 /** Relative luminance (sRGB) for a #rrggbb colour. */
 export function luminance(hex: string) {
@@ -20,19 +21,32 @@ export function contrastRatio(a: string, b: string) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Picks white or the ink colour for text on the accent, whichever reads better. */
+/**
+ * Text colour for buttons on the accent: white, the ink or the page colour,
+ * whichever reads best. Hot pink needs black text; deep plum needs white.
+ */
 export function accentInk(theme: Theme) {
-  return contrastRatio(theme.accent, "#ffffff") >= contrastRatio(theme.accent, theme.ink)
-    ? "#ffffff"
-    : theme.ink;
+  const candidates = ["#FFFFFF", theme.ink, theme.background];
+  return candidates.reduce((best, c) => (contrastRatio(theme.accent, c) > contrastRatio(theme.accent, best) ? c : best));
 }
 
-export function themeStyle(theme: Theme): CSSProperties {
+export const isDarkTheme = (theme: Theme) => luminance(theme.background) < 0.2;
+
+export function themeStyle(theme: Theme, fonts?: FontChoice): CSSProperties {
+  const f = resolveFonts(fonts);
   return {
     "--bg": theme.background,
     "--ink": theme.ink,
     "--accent": theme.accent,
     "--surface": theme.surface,
     "--accent-ink": accentInk(theme),
+    "--site-display": f.display.stack,
+    "--site-script": f.script.stack,
+    "--site-body": f.body.stack,
+    "--display-scale": String(f.display.scale ?? 1),
+    "--script-scale": String(f.script.scale ?? 1),
+    colorScheme: isDarkTheme(theme) ? "dark" : "light",
+    fontFamily: "var(--site-body)",
+    fontFeatureSettings: f.body.features ?? "normal",
   } as CSSProperties;
 }
