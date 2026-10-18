@@ -4,10 +4,10 @@ import clsx from "clsx";
 import { ArrowUpRight, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useHydrated } from "@/lib/hydration";
-import { useSalonStore } from "@/lib/store";
-import type { Role } from "@/lib/types";
+import { useSalonStore, type Sync } from "@/lib/store";
+import type { Role, Session } from "@/lib/types";
 
 export type OpsNavItem = { href: string; label: string; exact?: boolean };
 
@@ -37,6 +37,8 @@ export function OpsShell({
     else if (!allowed) router.replace(session.role === "admin" ? "/admin" : "/desk");
   }, [hydrated, session, allowed, router, pathname]);
 
+  useLivePolling(!!allowed);
+
   if (!hydrated || !allowed) {
     return <div className="min-h-dvh bg-ops-bg" aria-busy />;
   }
@@ -47,7 +49,10 @@ export function OpsShell({
         <div className="flex items-center justify-between px-5 py-4 lg:block lg:px-6 lg:py-6">
           <div>
             <p className="font-display text-[15px] uppercase tracking-[0.16em] text-ops-ink">{name}</p>
-            <p className="mt-0.5 text-[12px] text-ops-muted">{area}</p>
+            <p className="mt-0.5 flex items-center gap-2 text-[12px] text-ops-muted">
+              {area}
+              <ModeChip />
+            </p>
           </div>
           <div className="flex items-center gap-1 lg:hidden">
             <HeaderLinks session={session} signOut={signOut} compact />
@@ -80,6 +85,88 @@ export function OpsShell({
       <main className="min-w-0 flex-1">
         <div className="mx-auto max-w-5xl px-5 py-8 md:px-10 md:py-12">{children}</div>
       </main>
+      <SyncBadge />
+    </div>
+  );
+}
+
+/** Live sites: picks up bookings and payments made on other devices while this tab is open. */
+function useLivePolling(enabled: boolean) {
+  const mode = useSalonStore((s) => s.mode);
+  const pollLive = useSalonStore((s) => s.pollLive);
+  useEffect(() => {
+    if (!enabled || mode !== "live") return;
+    const tick = () => {
+      if (document.visibilityState === "visible") void pollLive();
+    };
+    const timer = setInterval(tick, 20_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [enabled, mode, pollLive]);
+}
+
+function ModeChip() {
+  const mode = useSalonStore((s) => s.mode);
+  return mode === "live" ? (
+    <span
+      title="Changes save to this website's own database."
+      className="rounded-full bg-[#e3f1e6] px-2 py-px text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#1f5130]"
+    >
+      Live
+    </span>
+  ) : (
+    <span
+      title="A showcase copy. Changes stay in this browser until you launch the site with its own database."
+      className="rounded-full bg-ops-bg px-2 py-px text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ops-muted ring-1 ring-ops-line"
+    >
+      Demo
+    </span>
+  );
+}
+
+const SYNC_TEXT = { pending: "Saving…", saving: "Saving…", saved: "All changes saved" } as const;
+
+function SyncBadge() {
+  const mode = useSalonStore((s) => s.mode);
+  const sync = useSalonStore((s) => s.sync);
+  const [hiddenAt, setHiddenAt] = useState<Sync | null>(null);
+
+  useEffect(() => {
+    if (sync.status !== "saved") return;
+    const t = setTimeout(() => setHiddenAt(sync), 2500);
+    return () => clearTimeout(t);
+  }, [sync]);
+
+  if (mode !== "live") return null;
+  const visible = sync.status !== "idle" && hiddenAt !== sync;
+  const error = sync.status === "error";
+  return (
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 lg:justify-end lg:px-6">
+      {visible && (
+        <div
+          role={error ? "alert" : "status"}
+          className={clsx(
+            "pointer-events-auto flex max-w-md items-center gap-3 rounded-full border px-4 py-2 text-[13px] shadow-sm",
+            error ? "border-[#e8c3c3] bg-[#fbeeee] text-[#7a2222]" : "border-ops-line bg-ops-surface text-ops-muted",
+          )}
+        >
+          {!error && (
+            <span
+              aria-hidden
+              className={clsx("size-2 rounded-full", sync.status === "saved" ? "bg-[#2f7a46]" : "animate-pulse bg-ops-accent")}
+            />
+          )}
+          <span>{error ? (sync.message ?? "Not saved.") : SYNC_TEXT[sync.status as keyof typeof SYNC_TEXT]}</span>
+          {error && (
+            <button type="button" onClick={() => setHiddenAt(sync)} className="cursor-pointer font-medium underline underline-offset-2">
+              Dismiss
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -89,7 +176,7 @@ function HeaderLinks({
   signOut,
   compact,
 }: {
-  session: NonNullable<ReturnType<typeof useSalonStore.getState>["session"]>;
+  session: NonNullable<Session>;
   signOut: () => void;
   compact?: boolean;
 }) {

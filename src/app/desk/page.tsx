@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { PaymentForm } from "@/components/ops/payment-form";
 import { StatusBadge } from "@/components/ui/badge";
@@ -16,6 +16,10 @@ export default function DeskPage() {
   const today = todayISO();
   const [date, setDate] = useState(today);
   const appointments = useSalonStore((s) => s.appointments);
+  const loadMonths = useSalonStore((s) => s.loadMonths);
+  useEffect(() => {
+    void loadMonths([date.slice(0, 7)]).catch(() => undefined);
+  }, [date, loadMonths]);
   const requested = useMemo(
     () =>
       appointments

@@ -41,7 +41,7 @@ export function CustomerAuth() {
   const customer = useCustomer();
   const signInCustomer = useSalonStore((s) => s.signInCustomer);
   const createCustomer = useSalonStore((s) => s.createCustomer);
-  const demoHints = useSalonStore((s) => s.settings.demoHints);
+  const demoHints = useSalonStore((s) => s.mode === "demo" && s.settings.demoHints);
   const copy = useCopy();
 
   const next = safeNext(params.get("next"));
@@ -51,6 +51,7 @@ export function CustomerAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (hydrated && customer) router.replace(next);
@@ -64,14 +65,15 @@ export function CustomerAuth() {
     setPassword("");
   }
 
-  function signIn(e: React.FormEvent) {
+  async function signIn(e: React.FormEvent) {
     e.preventDefault();
-    if (!signInCustomer(email, password)) {
-      setErrors({ password: copy.accountErrMatch });
-    }
+    setBusy(true);
+    const ok = await signInCustomer(email, password);
+    setBusy(false);
+    if (!ok) setErrors({ password: copy.accountErrMatch });
   }
 
-  function create(e: React.FormEvent) {
+  async function create(e: React.FormEvent) {
     e.preventDefault();
     const found: Errors = {};
     if (!name.trim()) found.name = copy.accountErrName;
@@ -80,9 +82,10 @@ export function CustomerAuth() {
     if (password.length < 6) found.password = copy.accountErrPassword;
     setErrors(found);
     if (Object.keys(found).length) return;
-    if (!createCustomer({ name, phone, email, password })) {
-      setErrors({ email: copy.accountErrExists });
-    }
+    setBusy(true);
+    const r = await createCustomer({ name, phone, email, password });
+    setBusy(false);
+    if (!r.ok) setErrors(r.error === "exists" ? { email: copy.accountErrExists } : { password: "Could not reach the salon. Try again in a moment." });
   }
 
   return (
@@ -127,7 +130,7 @@ export function CustomerAuth() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </Field>
-              <Button type="submit" size="lg" className="mt-1 w-full">
+              <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
                 {copy.accountSignInButton}
               </Button>
               <p className="text-center text-[14px] text-muted">
@@ -197,7 +200,7 @@ export function CustomerAuth() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </Field>
-              <Button type="submit" size="lg" className="mt-1 w-full">
+              <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
                 {copy.accountCreateButton}
               </Button>
               <p className="text-center text-[14px] text-muted">

@@ -181,6 +181,7 @@ export function BookingForm() {
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [done, setDone] = useState<Appointment | null>(null);
+  const [sending, setSending] = useState(false);
 
   const timeRef = useRef<HTMLFieldSetElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -250,8 +251,9 @@ export function BookingForm() {
     el.focus({ preventScroll: true });
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (sending) return;
     const next: Errors = {};
     if (!time) next.time = copy.bookErrTime;
     if (!name.trim()) next.name = copy.bookErrName;
@@ -262,7 +264,8 @@ export function BookingForm() {
     if (next.phone) return focusInvalid(phoneRef.current);
     if (!service) return;
 
-    const apt = createAppointment({
+    setSending(true);
+    const r = await createAppointment({
       customerId: customer?.id,
       guestName: name.trim(),
       guestPhone: phone.trim(),
@@ -273,8 +276,17 @@ export function BookingForm() {
       durationMin: service.durationMin,
       note: note.trim() || undefined,
     });
-    setDone(apt);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setSending(false);
+    if (r.ok) {
+      setDone(r.appointment);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    // "auth" clears the guest, and the account gate around this form takes over.
+    if (r.error === "auth") return;
+    if (r.error === "taken") setTime("");
+    setErrors({ time: r.error === "taken" ? copy.bookTaken : fill(copy.bookFailed, { phone: settings.contact.phone }) });
+    focusInvalid(timeRef.current);
   }
 
   if (done && service) {
@@ -678,8 +690,8 @@ export function BookingForm() {
                   {service ? formatMoney(service.price) : "—"}
                 </p>
               </div>
-              <Button type="submit" size="lg" className="mt-7 w-full" disabled={!service}>
-                {copy.bookSubmit}
+              <Button type="submit" size="lg" className="mt-7 w-full" disabled={!service || sending} aria-busy={sending}>
+                {sending ? copy.bookSending : copy.bookSubmit}
               </Button>
               <p aria-live="polite" className="mt-3.5 text-center text-[13px] leading-[1.55] text-muted">
                 {hint}

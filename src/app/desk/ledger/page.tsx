@@ -6,9 +6,9 @@ import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { PaymentForm } from "@/components/ops/payment-form";
 import { PaidBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatDateShort, isSameWeek, todayISO } from "@/lib/dates";
+import { addDays, formatDateShort, fromISODate, isSameWeek, todayISO } from "@/lib/dates";
 import { useMoney } from "@/lib/site-hooks";
-import { useSalonStore } from "@/lib/store";
+import { MAX_MONTHS, useSalonStore } from "@/lib/store";
 
 const METHOD_LABEL = { cash: "Cash", card: "Card", transfer: "Transfer" } as const;
 
@@ -20,6 +20,18 @@ export default function LedgerPage() {
   const [adding, setAdding] = useState(false);
   const formatMoney = useMoney();
   const today = todayISO();
+  const mode = useSalonStore((s) => s.mode);
+  const months = useSalonStore((s) => s.months);
+  const loadMonths = useSalonStore((s) => s.loadMonths);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const earliest = months.length ? months.slice().sort()[0] : null;
+
+  async function showOlder() {
+    if (!earliest) return;
+    setLoadingOlder(true);
+    await loadMonths([addDays(`${earliest}-01`, -1).slice(0, 7)]).catch(() => undefined);
+    setLoadingOlder(false);
+  }
 
   const totals = useMemo(() => {
     const paid = payments.filter((p) => p.status === "paid");
@@ -121,6 +133,21 @@ export default function LedgerPage() {
           </table>
         )}
       </Card>
+
+      {mode === "live" && earliest && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-ops-muted">
+          <p>
+            Showing payments since{" "}
+            {fromISODate(`${earliest}-01`).toLocaleDateString("en", { month: "long", year: "numeric" })}. Totals count only
+            what is shown.
+          </p>
+          {months.length < MAX_MONTHS && (
+            <Button size="sm" variant="ghost" disabled={loadingOlder} onClick={showOlder}>
+              {loadingOlder ? "Loading…" : "Show the month before"}
+            </Button>
+          )}
+        </div>
+      )}
     </>
   );
 }

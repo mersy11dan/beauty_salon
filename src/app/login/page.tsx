@@ -24,21 +24,33 @@ function LoginInner() {
   const signIn = useSalonStore((s) => s.signIn);
   const accounts = useSalonStore((s) => s.accounts);
   const name = useSalonStore((s) => s.settings.name);
-  const demoHints = useSalonStore((s) => s.settings.demoHints);
+  const demoHints = useSalonStore((s) => s.mode === "demo" && s.settings.demoHints);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const next = params.get("next");
+  const rawNext = params.get("next");
+  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\") ? rawNext : null;
 
   useEffect(() => {
     if (hydrated && session) router.replace(next ?? (session.role === "admin" ? "/admin" : "/desk"));
   }, [hydrated, session, router, next]);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const role = signIn(email, password);
+    setBusy(true);
+    const role = await signIn(email, password).catch(() => "offline" as const);
+    setBusy(false);
+    if (role === "setup") {
+      setError("This site has no admin login yet. In Vercel, add ADMIN_EMAIL and ADMIN_PASSWORD under Settings → Environment Variables, then redeploy.");
+      return;
+    }
+    if (role === "offline") {
+      setError("Could not reach the site. Check the connection and try again.");
+      return;
+    }
     if (!role) {
       setError(demoHints ? "That email and password do not match. Check the demo logins below." : "That email and password do not match.");
       return;
@@ -62,8 +74,8 @@ function LoginInner() {
           <Field label="Password" htmlFor="password" error={error}>
             <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </Field>
-          <Button type="submit" size="lg" className="mt-2 bg-ops-accent text-white hover:bg-black">
-            Sign in
+          <Button type="submit" size="lg" className="mt-2 bg-ops-accent text-white hover:bg-black" disabled={busy}>
+            {busy ? "Signing in…" : "Sign in"}
           </Button>
         </form>
 
