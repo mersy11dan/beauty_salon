@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { uid } from "./format";
-import { createSeed, DEMO_ACCOUNTS } from "./seed";
+import { createSeed, DEMO_ACCOUNTS, LEGACY_COPY } from "./seed";
 import type {
   Appointment,
   AppointmentStatus,
@@ -69,6 +69,36 @@ export type SalonState = SalonData & {
 } & Actions;
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+function migrateToEthiopia(p: Partial<SalonState>, seed: SalonData): Partial<SalonState> {
+  const settings = p.settings;
+  const keep = (current: string | undefined, legacy: string, next: string) => (!current || current === legacy ? next : current);
+  const ownCustomers = (p.customers ?? []).filter((c) => c.id !== LEGACY_COPY.customerId && c.email !== seed.customers[0].email);
+  return {
+    ...p,
+    services: seed.services,
+    staff: seed.staff,
+    reviews: seed.reviews,
+    offers: seed.offers,
+    appointments: seed.appointments,
+    payments: seed.payments,
+    customers: [...seed.customers, ...ownCustomers],
+    customerId: p.customerId === LEGACY_COPY.customerId ? null : (p.customerId ?? null),
+    settings: settings && {
+      ...settings,
+      hours: seed.settings.hours,
+      contact: seed.settings.contact,
+      hero: settings.hero && {
+        ...settings.hero,
+        paragraph: keep(settings.hero.paragraph, LEGACY_COPY.heroParagraph, seed.settings.hero.paragraph),
+      },
+      about: settings.about && {
+        ...settings.about,
+        body: keep(settings.about.body, LEGACY_COPY.aboutBody, seed.settings.about.body),
+      },
+    },
+  };
+}
 
 function upsert<T extends { id: string }>(list: T[], item: T) {
   const i = list.findIndex((x) => x.id === item.id);
@@ -179,11 +209,16 @@ export const useSalonStore = create<SalonState>()(
     }),
     {
       name: "beauty-salon-demo",
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
-        const p = (persisted ?? {}) as Partial<SalonState>;
+        let p = (persisted ?? {}) as Partial<SalonState>;
+        const seed = createSeed();
         // v2: the demo portfolio moved from the three hero cut-outs to the real photo sets.
-        if (version < 2) return { ...p, portfolio: createSeed().portfolio };
+        if (version < 2) p = { ...p, portfolio: seed.portfolio };
+        // v3: the Ethiopian edition. Prices are in birr and every sample person and
+        // number is local, so the dollar-era sample data is swapped out wholesale.
+        // Branding, modules, photos and logins are kept, as is any copy the owner rewrote.
+        if (version < 3) p = migrateToEthiopia(p, seed);
         return p;
       },
       storage: createJSONStorage(() => localStorage),

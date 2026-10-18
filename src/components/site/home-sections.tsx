@@ -10,6 +10,7 @@ import { SplitWords } from "@/components/motion/split-text";
 import { Tilt } from "@/components/motion/tilt";
 import { ButtonLink } from "@/components/ui/button";
 import { formatDateShort, todayISO, weekdayOf } from "@/lib/dates";
+import { formatPhone, telHref } from "@/lib/phone";
 import { useSalonStore } from "@/lib/store";
 import type { Service } from "@/lib/types";
 import { GalleryScroll } from "./gallery-scroll";
@@ -235,7 +236,6 @@ export function ReviewsPreview() {
 export function VisitBlock() {
   const settings = useSalonStore((s) => s.settings);
   const today = weekdayOf(todayISO());
-  const tel = settings.contact.phone.replace(/[^+\d]/g, "");
   return (
     <Section id="visit" className="hairline-t scroll-mt-14">
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
@@ -245,7 +245,7 @@ export function VisitBlock() {
             <address className="flex flex-col gap-4 not-italic">
               <p className="text-[17px] leading-[1.5] text-ink">{settings.contact.address}</p>
               <p className="flex flex-col gap-1 text-[15.5px] text-muted">
-                <a href={`tel:${tel}`} className="w-fit hover:text-ink">{settings.contact.phone}</a>
+                <a href={telHref(settings.contact.phone)} className="tabular w-fit hover:text-ink">{formatPhone(settings.contact.phone)}</a>
                 <a href={`mailto:${settings.contact.email}`} className="w-fit hover:text-ink">{settings.contact.email}</a>
               </p>
               {settings.contact.mapUrl && (

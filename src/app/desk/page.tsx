@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { addDays, formatDateLong, formatDateShort, formatTime, hhmmOf, minutesOf, todayISO } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
+import { formatPhone, telHref } from "@/lib/phone";
 import { useSalonStore } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
 
@@ -109,7 +110,7 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
             {who ? ` · ${who.name}` : ""}
             {service ? ` · ${formatMoney(service.price)}` : ""}
             {" · "}
-            <a href={`tel:${apt.guestPhone.replace(/[^+\d]/g, "")}`} className="hover:text-ops-ink">{apt.guestPhone}</a>
+            <a href={telHref(apt.guestPhone)} className="tabular whitespace-nowrap hover:text-ops-ink">{formatPhone(apt.guestPhone)}</a>
           </p>
           {apt.note && <p className="mt-1.5 text-[13.5px] italic text-ops-muted">“{apt.note}”</p>}
         </div>

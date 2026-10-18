@@ -130,7 +130,7 @@ export type Appointment = {
   createdAt: string;
 };
 
-export type PaymentMethod = "cash" | "card" | "transfer";
+export type PaymentMethod = "cash" | "telebirr" | "mpesa" | "transfer" | "card";
 export type PaymentStatus = "paid" | "unpaid";
 
 export type Payment = {
