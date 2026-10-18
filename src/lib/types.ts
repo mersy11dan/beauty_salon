@@ -40,7 +40,9 @@ export type HeroSlide = {
 export type Settings = {
   name: string;
   tagline: string;
-  logoDataUrl: string | null;
+  logoUrl: string | null;
+  /** IANA zone, e.g. "America/New_York". Booking times and "today" are read in this zone. */
+  timeZone: string;
   theme: Theme;
   modules: Modules;
   hero: {
@@ -146,7 +148,7 @@ export type Payment = {
 
 export type Role = "admin" | "staff";
 
-export type Session = { role: Role; email: string } | null;
+export type Session = { id: string; role: Role; email: string; name: string } | null;
 
 /** A guest's own account on the public site. Separate from staff and admin logins. */
 export type Customer = {
@@ -154,18 +156,36 @@ export type Customer = {
   name: string;
   email: string;
   phone: string;
-  password: string;
   createdAt: string;
 };
 
-export type SalonData = {
+/** A desk or admin login, as the admin sees it on the Access page. */
+export type StaffAccount = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  createdAt: string;
+};
+
+/** Everything the public site shows. Safe to send to any visitor. */
+export type PublicData = {
   settings: Settings;
   services: Service[];
   staff: StaffMember[];
   portfolio: PortfolioItem[];
   reviews: Review[];
   offers: Offer[];
+};
+
+/** Bookings and money. Only ever sent to signed-in staff. */
+export type OpsData = {
   appointments: Appointment[];
   payments: Payment[];
-  customers: Customer[];
 };
+
+export type SalonData = PublicData & OpsData;
+
+export type ActionResult<T = null> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; field?: string };

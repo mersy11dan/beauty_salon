@@ -53,6 +53,36 @@ export function todayISO() {
   return toISODate(new Date());
 }
 
+export function isValidTimeZone(timeZone: string) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The wall-clock date and minutes since midnight in `timeZone`. Falls back to the runtime's zone. */
+export function nowInZone(timeZone: string, at = new Date()): { date: string; minutes: number } {
+  if (!timeZone || !isValidTimeZone(timeZone)) {
+    return { date: toISODate(at), minutes: at.getHours() * 60 + at.getMinutes() };
+  }
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(at);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "00";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    minutes: Number(get("hour")) * 60 + Number(get("minute")),
+  };
+}
+
 export function addDays(iso: string, days: number) {
   const d = fromISODate(iso);
   d.setDate(d.getDate() + days);

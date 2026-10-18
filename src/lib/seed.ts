@@ -1,12 +1,8 @@
 import { addDays, todayISO } from "./dates";
-import type { Hours, PortfolioItem, SalonData, Service } from "./types";
+import { DEMO_CUSTOMER } from "./demo";
+import type { Appointment, Hours, Payment, PortfolioItem, PublicData, Service } from "./types";
 
-export const DEMO_ACCOUNTS = {
-  admin: { email: "admin@beautysalon.demo", password: "admin1234" },
-  staff: { email: "desk@beautysalon.demo", password: "desk1234" },
-};
-
-export const DEMO_CUSTOMER = { email: "maya.chen@example.com", password: "guest1234" };
+export const DEFAULT_TIME_ZONE = "America/New_York";
 
 const hours: Hours = {
   0: null,
@@ -52,17 +48,16 @@ function interleave<T>(lists: T[][]): T[] {
   return out;
 }
 
-export function createSeed(): SalonData {
+/** The sample salon: settings and everything shown on the public site. */
+export function createSeedContent(): PublicData {
   const today = todayISO();
-  const tomorrow = addDays(today, 1);
-  const yesterday = addDays(today, -1);
-  const now = new Date().toISOString();
 
   return {
     settings: {
       name: "Beauty Salon",
       tagline: "Nails, hair and makeup, by appointment",
-      logoDataUrl: null,
+      logoUrl: null,
+      timeZone: DEFAULT_TIME_ZONE,
       theme: {
         background: "#F5F1F2",
         ink: "#1E181C",
@@ -180,8 +175,19 @@ export function createSeed(): SalonData {
       { id: "of_1", title: "Gel manicure and pedicure together", detail: "Book both in one visit and save $15.", until: addDays(today, 21), active: true },
       { id: "of_2", title: "First visit, 10% off", detail: "For any service on your first appointment. Mention it at the desk.", until: addDays(today, 60), active: true },
     ],
+  };
+}
+
+/** Sample bookings and payments around today, for the demo desk. */
+export function createDemoOps(customerId: string): { appointments: Appointment[]; payments: Payment[] } {
+  const today = todayISO();
+  const tomorrow = addDays(today, 1);
+  const yesterday = addDays(today, -1);
+  const now = new Date().toISOString();
+
+  return {
     appointments: [
-      { id: "apt_1", customerId: "cus_maya", guestName: "Maya Chen", guestPhone: "+1 555 010 3301", serviceId: "svc_gel", staffId: "stf_amara", date: today, time: "10:00", durationMin: 60, status: "confirmed", createdAt: now },
+      { id: "apt_1", customerId, guestName: DEMO_CUSTOMER.name, guestPhone: DEMO_CUSTOMER.phone, serviceId: "svc_gel", staffId: "stf_amara", date: today, time: "10:00", durationMin: 60, status: "confirmed", createdAt: now },
       { id: "apt_2", guestName: "Ruth Adeyemi", guestPhone: "+1 555 010 4419", serviceId: "svc_cut", staffId: "stf_lena", date: today, time: "11:30", durationMin: 60, status: "confirmed", createdAt: now },
       { id: "apt_3", guestName: "Sofia Marin", guestPhone: "+1 555 010 7782", serviceId: "svc_daymakeup", staffId: "stf_yara", date: today, time: "14:00", durationMin: 45, status: "requested", note: "Wedding guest, soft look", createdAt: now },
       { id: "apt_4", guestName: "Jonas Berg", guestPhone: "+1 555 010 9023", serviceId: "svc_mencut", staffId: "stf_lena", date: today, time: "16:00", durationMin: 30, status: "requested", createdAt: now },
@@ -194,9 +200,6 @@ export function createSeed(): SalonData {
       { id: "pay_1", amount: 30, method: "card", status: "paid", appointmentId: "apt_7", label: "Brow shape and tint · Noor Rahman", date: yesterday, createdAt: now },
       { id: "pay_2", amount: 55, method: "cash", status: "paid", appointmentId: null, label: "Gel manicure · walk-in", date: yesterday, createdAt: now },
       { id: "pay_3", amount: 140, method: "transfer", status: "unpaid", appointmentId: null, label: "Full-head colour · deposit pending", date: today, createdAt: now },
-    ],
-    customers: [
-      { id: "cus_maya", name: "Maya Chen", phone: "+1 555 010 3301", ...DEMO_CUSTOMER, createdAt: now },
     ],
   };
 }
