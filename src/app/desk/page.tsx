@@ -95,9 +95,11 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
   return (
     <li className={clsx("px-5 py-4", faded && "opacity-60")}>
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-6">
-        <div className="tabular w-32 shrink-0 text-[14px] text-ops-ink">
+        <div className="tabular w-40 shrink-0 text-[14px] text-ops-ink">
           {showDate && <div className="text-[12.5px] text-ops-muted">{formatDateShort(apt.date)}</div>}
-          {formatTime(apt.time)} – {formatTime(end)}
+          <span className="whitespace-nowrap">
+            {formatTime(apt.time)} – {formatTime(end)}
+          </span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

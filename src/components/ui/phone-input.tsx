@@ -47,7 +47,7 @@ export function PhoneInput({
           aria-label="Country code"
           value={country.code}
           onChange={(e) => onChange({ country: e.target.value, number: value.number })}
-          className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-l-lg opacity-0"
+          className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-l-lg text-base opacity-0"
         >
           {COUNTRIES.map((c) => (
             <option key={c.code} value={c.code}>
@@ -55,7 +55,7 @@ export function PhoneInput({
             </option>
           ))}
         </select>
-        <span aria-hidden className="pointer-events-none flex items-center gap-1.5 pl-3.5 pr-2.5 text-[15px] text-ink">
+        <span aria-hidden className="pointer-events-none flex items-center gap-1.5 pl-3.5 pr-2.5 text-base text-ink md:text-[15px]">
           <span className="text-[11px] font-semibold tracking-[0.08em] text-muted">{country.code}</span>
           <span className="tabular">+{country.dial}</span>
           <ChevronDown className="size-3.5 text-muted" strokeWidth={1.75} />
@@ -83,7 +83,7 @@ export function PhoneInput({
           }
           onBlur?.();
         }}
-        className="tabular min-w-0 flex-1 rounded-r-lg bg-transparent px-3 py-2.5 text-[15px] text-ink placeholder:text-faint focus:outline-none"
+        className="tabular min-w-0 flex-1 rounded-r-lg bg-transparent px-3 py-2.5 text-base text-ink placeholder:text-faint focus:outline-none md:text-[15px]"
       />
     </div>
   );

@@ -56,7 +56,7 @@ export function Hero() {
                   onClick={() => setIndex(i)}
                   className={clsx(
                     "relative rounded-sm pb-1 transition-colors duration-500",
-                    i === index ? "text-accent" : "text-faint hover:text-muted",
+                    i === index ? "text-accent" : "text-muted hover:text-ink",
                   )}
                 >
                   {s.label}

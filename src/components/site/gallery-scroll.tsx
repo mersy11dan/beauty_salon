@@ -211,7 +211,7 @@ function Card({
         </div>
         <div className="mt-3 flex items-baseline justify-between gap-3 text-[13.5px]">
           <span className="truncate text-ink">{item.caption}</span>
-          <span className="shrink-0 text-faint transition-colors duration-500 group-hover:text-accent">{item.category}</span>
+          <span className="shrink-0 text-muted transition-colors duration-500 group-hover:text-accent">{item.category}</span>
         </div>
       </MotionLink>
     </motion.div>

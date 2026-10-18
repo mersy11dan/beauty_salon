@@ -12,7 +12,7 @@
   --surface: #ffffff;
 
   --muted: color-mix(in oklab, var(--ink) 60%, var(--bg));
-  --faint: color-mix(in oklab, var(--ink) 40%, var(--bg));
+  --faint: color-mix(in oklab, var(--ink) 52%, var(--bg));
   --line: color-mix(in oklab, var(--ink) 12%, var(--bg));
   --line-strong: color-mix(in oklab, var(--ink) 24%, var(--bg));
   --soft: color-mix(in oklab, var(--accent) 7%, var(--bg));
@@ -93,6 +93,17 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 2px;
+}
+
+/* Preflight leaves buttons on the arrow cursor. Layered so utilities still win. */
+@layer base {
+  button:not(:disabled),
+  [role="button"],
+  [role="tab"],
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

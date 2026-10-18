@@ -112,11 +112,16 @@ function lengthLabel(c: Country) {
 /** "10 digits, starting with 09 or 07." */
 export function phoneHint(country: string, kind: PhoneKind = "mobile") {
   const c = countryByCode(country);
-  return kind === "mobile" ? `${lengthLabel(c)}, starting with ${c.starts}.` : `${lengthLabel(c)}, like ${c.example}.`;
+  return kind === "mobile" ? `${lengthLabel(c)}, starting with ${c.starts}.` : `${lengthLabel(c)}, like ${sample(c)}.`;
 }
 
 function where(c: Country) {
   return c.inName ?? c.name;
+}
+
+/** The example inside a sentence, held on one line. */
+function sample(c: Country) {
+  return c.example.replace(/ /g, "\u00a0");
 }
 
 export function checkPhone(value: PhoneValue, kind: PhoneKind = "mobile"): PhoneCheck {
@@ -155,15 +160,15 @@ export function checkPhone(value: PhoneValue, kind: PhoneKind = "mobile"): Phone
       ok: false,
       error:
         kind === "mobile"
-          ? `Mobile numbers in ${where(c)} start with ${c.starts}, like ${c.example}.`
-          : `That doesn't look like a number in ${where(c)}. Try the format ${c.example}.`,
+          ? `Mobile numbers in ${where(c)} start with ${c.starts}, like ${sample(c)}.`
+          : `That doesn't look like a number in ${where(c)}. Try the format ${sample(c)}.`,
     };
   }
   if (nsn.length < min || nsn.length > max) {
     const label = kind === "mobile" ? "Mobile numbers" : "Numbers";
     return {
       ok: false,
-      error: `${label} in ${where(c)} have ${lengthLabel(c)}, like ${c.example}. You've entered ${typed} ${digitWord(typed)}.`,
+      error: `${label} in ${where(c)} have ${lengthLabel(c)}, like ${sample(c)}. You've entered ${typed} ${digitWord(typed)}.`,
     };
   }
   return { ok: true, e164: `+${c.dial}${nsn}`, nsn };
