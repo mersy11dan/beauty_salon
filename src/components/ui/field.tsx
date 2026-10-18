@@ -2,7 +2,7 @@ import clsx from "clsx";
 import type { ComponentProps, ReactNode } from "react";
 
 const control =
-  "w-full rounded-lg border border-line-strong/70 bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-faint transition-colors duration-200 hover:border-line-strong focus:border-ink focus:outline-none disabled:opacity-50";
+  "w-full rounded-lg border border-line-strong/70 bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-faint transition-colors duration-200 hover:border-line-strong focus:border-ink focus:outline-none aria-invalid:border-[#9b2c2c]/60 disabled:opacity-50";
 
 export function Field({
   label,
