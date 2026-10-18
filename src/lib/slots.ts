@@ -52,7 +52,8 @@ export function availableSlots(input: SlotInput): string[] {
     if (input.staffId) {
       free = !busy.some((a) => a.staffId === input.staffId);
     } else if (input.staffPool.length > 0) {
-      const busyStaff = new Set(busy.map((a) => a.staffId).filter(Boolean));
+      // Someone who can't do this service being busy doesn't take a chair from those who can.
+      const busyStaff = new Set(busy.map((a) => a.staffId).filter((id) => id && input.staffPool.includes(id)));
       const unassigned = busy.filter((a) => !a.staffId).length;
       free = busyStaff.size + unassigned < input.staffPool.length;
     } else {
