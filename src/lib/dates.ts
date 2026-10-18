@@ -20,7 +20,7 @@ export const WEEKDAY_SHORT = [
   "Sat",
 ] as const;
 
-const MONTHS_SHORT = [
+export const MONTHS_SHORT = [
   "Jan",
   "Feb",
   "Mar",

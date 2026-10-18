@@ -26,9 +26,13 @@ export function Field({
       </label>
       {children}
       {error ? (
-        <p className="text-[13px] text-[#9b2c2c]">{error}</p>
+        <p id={htmlFor && `${htmlFor}-error`} className="text-[13px] text-[#9b2c2c]">
+          {error}
+        </p>
       ) : hint ? (
-        <p className="text-[13px] text-muted">{hint}</p>
+        <p id={htmlFor && `${htmlFor}-hint`} className="text-[13px] text-muted">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
