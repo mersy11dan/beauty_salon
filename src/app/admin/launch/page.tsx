@@ -245,7 +245,15 @@ function ImportSite() {
       {picked ? (
         <div className="rounded-lg border border-ops-line bg-ops-bg p-4">
           <p className="text-[14px] text-ops-ink">
-            Replace everything on this website{current ? ` (${current})` : ""} with <strong className="font-semibold">{picked.name}</strong>?
+            {current && current !== picked.name ? (
+              <>
+                Replace everything on this website ({current}) with <strong className="font-semibold">{picked.name}</strong>?
+              </>
+            ) : (
+              <>
+                Replace everything on this website with the saved copy of <strong className="font-semibold">{picked.name}</strong>?
+              </>
+            )}
           </p>
           <p className="mt-1 text-[13px] text-ops-muted">
             From {picked.file}. Bookings, payments, guest accounts and logins stay as they are.

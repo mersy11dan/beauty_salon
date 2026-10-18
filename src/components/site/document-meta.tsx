@@ -14,9 +14,18 @@ export function DocumentMeta() {
   const favicon = useSalonStore((s) => s.settings.faviconDataUrl);
   const pathname = usePathname();
 
+  // Next rewrites the title after client navigations, sometimes after this effect has run, so re-apply on every head change.
   useEffect(() => {
-    document.title = title.trim() || name || document.title;
-  }, [title, name, pathname]);
+    const want = title.trim() || name;
+    if (!want) return;
+    const apply = () => {
+      if (document.title !== want) document.title = want;
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.head, { subtree: true, childList: true, characterData: true });
+    return () => observer.disconnect();
+  }, [title, name]);
 
   useEffect(() => {
     const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]'));
