@@ -17,6 +17,7 @@ export function RevealFrame({
   className,
   delay = 0,
   amount = 0.2,
+  radius = 0,
 }: {
   children: ReactNode;
   className?: string;
@@ -24,26 +25,36 @@ export function RevealFrame({
   delay?: number;
   /** Trigger when this fraction of the frame is in view. */
   amount?: number;
+  /** Corner radius in px, so the moving edge matches a rounded frame. */
+  radius?: number;
 }) {
   const reduce = useReducedMotion();
   if (reduce) return <div className={className}>{children}</div>;
+  const round = radius ? ` round ${radius}px` : "";
+  // The in-view trigger must not be the clipped element: Chrome's
+  // IntersectionObserver measures through the target's own clip-path, so a
+  // fully clipped target never counts as visible.
   return (
     <motion.div
       className={className}
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, amount }}
-      variants={{
-        hidden: { clipPath: "inset(100% 0% 0% 0%)" },
-        show: {
-          clipPath: "inset(0% 0% 0% 0%)",
-          // Dropped once open so shared-layout children can fly outside the frame.
-          transitionEnd: { clipPath: "none" },
-          transition: { duration: 1.2, ease: EASE_OUT_EXPO, delay, delayChildren: delay },
-        },
-      }}
+      variants={{ hidden: {}, show: { transition: { delayChildren: delay } } }}
     >
-      {children}
+      <motion.div
+        variants={{
+          hidden: { clipPath: `inset(100% 0% 0% 0%${round})` },
+          show: {
+            clipPath: `inset(0% 0% 0% 0%${round})`,
+            // Dropped once open so shared-layout children can fly outside the frame.
+            transitionEnd: { clipPath: "none" },
+            transition: { duration: 1.2, ease: EASE_OUT_EXPO },
+          },
+        }}
+      >
+        {children}
+      </motion.div>
     </motion.div>
   );
 }

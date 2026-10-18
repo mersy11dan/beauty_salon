@@ -211,7 +211,7 @@ function Thumb({
         data-cursor="View"
         className={clsx("block w-full rounded-[14px] text-left", customCursor ? "cursor-none" : "cursor-zoom-in")}
       >
-        <RevealFrame delay={delay}>
+        <RevealFrame delay={delay} radius={14}>
           <motion.div
             layoutId={`pf-${item.id}`}
             className={clsx("aspect-[3/4] overflow-hidden rounded-[14px] bg-soft", hidden && "invisible")}
