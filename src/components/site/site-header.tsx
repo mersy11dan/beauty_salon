@@ -61,9 +61,11 @@ export function SiteHeader() {
     return () => io.disconnect();
   }, []);
 
+  // The nav is a sibling of the header (not a child) so `position: sticky`
+  // is constrained by the full-page wrapper and stays pinned all the way down.
   return (
-    <header>
-      <div className="flex flex-col items-center px-6 pb-7 pt-10 text-center md:pt-12">
+    <>
+      <header className="flex flex-col items-center px-6 pb-7 pt-10 text-center md:pt-12">
         <Link href="/" className="rounded-sm">
           <Wordmark name={settings.name} logo={settings.logoDataUrl} />
         </Link>
@@ -72,7 +74,7 @@ export function SiteHeader() {
             {settings.tagline}
           </p>
         )}
-      </div>
+      </header>
 
       <div ref={sentinel} aria-hidden className="h-px w-full" />
 
@@ -129,6 +131,6 @@ export function SiteHeader() {
           </div>
         </div>
       </nav>
-    </header>
+    </>
   );
 }
