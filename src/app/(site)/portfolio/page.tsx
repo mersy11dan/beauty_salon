@@ -3,7 +3,11 @@
 import clsx from "clsx";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { CURSOR_LABEL_QUERY, CursorLabel } from "@/components/motion/cursor-label";
+import { RevealFrame, RevealZoom } from "@/components/motion/image-reveal";
+import { Parallax } from "@/components/motion/parallax";
 import { EASE_OUT_EXPO } from "@/components/motion/reveal";
+import { useMediaQuery } from "@/components/motion/use-media";
 import { ModuleGate } from "@/components/site/module-gate";
 import { PageTitle } from "@/components/site/section";
 import { useSalonStore } from "@/lib/store";
@@ -20,6 +24,8 @@ function readHash() {
 export default function PortfolioPage() {
   const portfolio = useSalonStore((s) => s.portfolio);
   const reduce = useReducedMotion();
+  const cols = useMediaQuery("(min-width: 768px)") ? 3 : 2;
+  const customCursor = useMediaQuery(CURSOR_LABEL_QUERY);
   const [filter, setFilter] = useState<string>("All");
   const lastTrigger = useRef<HTMLElement | null>(null);
 
@@ -79,47 +85,55 @@ export default function PortfolioPage() {
       />
       <div className="mx-auto max-w-6xl px-6 pb-20 md:pb-28">
         {categories.length > 2 && (
-          <div role="tablist" aria-label="Filter by category" className="mb-10 flex flex-wrap gap-2">
-            {categories.map((c) => (
-              <button
-                key={c}
-                role="tab"
-                aria-selected={filter === c}
-                onClick={() => setFilter(c)}
-                className={clsx(
-                  "relative h-9 rounded-full px-4 text-[13.5px] transition-colors duration-300",
-                  filter === c ? "text-bg" : "text-ink hover:text-accent",
-                )}
-              >
-                {filter === c && (
-                  <motion.span
-                    layoutId="portfolio-filter-pill"
-                    className="absolute inset-0 rounded-full bg-ink"
-                    transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                  />
-                )}
-                {filter !== c && <span aria-hidden className="absolute inset-0 rounded-full border border-line-strong" />}
-                <span className="relative">{c}</span>
-              </button>
-            ))}
+          <div className="mb-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+            <div role="tablist" aria-label="Filter by category" className="flex flex-wrap gap-2">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  role="tab"
+                  aria-selected={filter === c}
+                  onClick={() => setFilter(c)}
+                  className={clsx(
+                    "relative h-9 rounded-full px-4 text-[13.5px] transition-colors duration-300",
+                    filter === c ? "text-bg" : "text-ink hover:text-accent",
+                  )}
+                >
+                  {filter === c && (
+                    <motion.span
+                      layoutId="portfolio-filter-pill"
+                      className="absolute inset-0 rounded-full bg-ink"
+                      transition={{ type: "spring", stiffness: 380, damping: 34 }}
+                    />
+                  )}
+                  {filter !== c && <span aria-hidden className="absolute inset-0 rounded-full border border-line-strong" />}
+                  <span className="relative">{c}</span>
+                </button>
+              ))}
+            </div>
+            <Count value={items.length} />
           </div>
         )}
 
         <LayoutGroup>
           <motion.ul layout className="grid grid-cols-2 gap-5 md:grid-cols-3 md:gap-7">
-            <AnimatePresence mode="popLayout" initial={false}>
+            {/* Entrances belong to each thumb's RevealFrame, which `initial={false}` here would suppress. */}
+            <AnimatePresence mode="popLayout">
               {items.map((p, i) => (
                 <motion.li
                   key={p.id}
                   id={p.id}
                   layout
-                  initial={reduce ? false : { opacity: 0, scale: 0.92, y: 16 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={reduce ? undefined : { opacity: 0, scale: 0.94, transition: { duration: 0.25 } }}
                   transition={{ duration: 0.7, ease: EASE_OUT_EXPO, delay: Math.min(i, 8) * 0.03 }}
                   className={clsx(i % 3 === 1 && "md:mt-12")}
                 >
-                  <Thumb item={p} hidden={open?.id === p.id} onOpen={(el) => show(p.id, el)} />
+                  <Thumb
+                    item={p}
+                    hidden={open?.id === p.id}
+                    delay={(i % cols) * 0.09}
+                    customCursor={customCursor}
+                    onOpen={(el) => show(p.id, el)}
+                  />
                 </motion.li>
               ))}
             </AnimatePresence>
@@ -141,36 +155,93 @@ export default function PortfolioPage() {
 
         {items.length === 0 && <p className="text-[16px] text-muted">Nothing here yet.</p>}
       </div>
+      <CursorLabel hidden={!!open} />
     </ModuleGate>
   );
 }
 
-function Thumb({ item, hidden, onOpen }: { item: PortfolioItem; hidden: boolean; onOpen: (el: HTMLElement) => void }) {
+/** Photo count beside the filters; the digits roll over when the filter changes. */
+function Count({ value }: { value: number }) {
+  const reduce = useReducedMotion();
+  const digits = String(value).padStart(2, "0");
+  const noun = value === 1 ? "photo" : "photos";
   return (
-    <figure>
+    <p className="flex items-baseline gap-1.5 text-[12.5px] text-muted">
+      <span aria-hidden className="clip-line tabular relative inline-flex text-ink">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={digits}
+            className="inline-block"
+            initial={reduce ? false : { y: "100%" }}
+            animate={{ y: "0%" }}
+            exit={reduce ? undefined : { y: "-100%" }}
+            transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
+          >
+            {digits}
+          </motion.span>
+        </AnimatePresence>
+      </span>
+      <span aria-hidden>{noun}</span>
+      <span className="sr-only" aria-live="polite">
+        {value} {noun}
+      </span>
+    </p>
+  );
+}
+
+function Thumb({
+  item,
+  hidden,
+  delay,
+  customCursor,
+  onOpen,
+}: {
+  item: PortfolioItem;
+  hidden: boolean;
+  delay: number;
+  customCursor: boolean;
+  onOpen: (el: HTMLElement) => void;
+}) {
+  return (
+    <figure className="group">
       <button
         type="button"
         onClick={(e) => onOpen(e.currentTarget)}
         aria-label={`Open ${item.caption}`}
-        className="group block w-full cursor-zoom-in rounded-[14px] text-left"
+        data-cursor="View"
+        className={clsx("block w-full rounded-[14px] text-left", customCursor ? "cursor-none" : "cursor-zoom-in")}
       >
-        <motion.div
-          layoutId={`pf-${item.id}`}
-          className={clsx("aspect-[3/4] overflow-hidden rounded-[14px] bg-soft", hidden && "invisible")}
-          transition={{ duration: 0.6, ease: EASE_OUT_EXPO }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={item.src}
-            alt={item.alt}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out-expo group-hover:scale-[1.04]"
-          />
-        </motion.div>
+        <RevealFrame delay={delay} radius={14}>
+          <motion.div
+            layoutId={`pf-${item.id}`}
+            className={clsx("aspect-[3/4] overflow-hidden rounded-[14px] bg-soft", hidden && "invisible")}
+            transition={{ duration: 0.6, ease: EASE_OUT_EXPO }}
+          >
+            {/* Oversized so the drift never shows the frame's edge. */}
+            <Parallax speed={-0.05} className="h-full w-full motion-safe:scale-[1.14]">
+              <RevealZoom className="h-full w-full">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.src}
+                  alt={item.alt}
+                  loading="lazy"
+                  draggable={false}
+                  className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out-expo group-hover:scale-[1.04]"
+                />
+              </RevealZoom>
+            </Parallax>
+          </motion.div>
+        </RevealFrame>
       </button>
       <figcaption className="mt-3 flex items-baseline justify-between gap-3 text-[13.5px]">
-        <span className="text-ink">{item.caption}</span>
-        <span className="text-faint">{item.category}</span>
+        <span className="relative text-ink">
+          {item.caption}
+          <span
+            aria-hidden
+            className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-0 bg-current transition-transform duration-700 ease-out-expo group-hover:scale-x-100 group-has-[:focus-visible]:scale-x-100"
+          />
+        </span>
+        <span className="text-faint transition-colors duration-500 group-hover:text-accent">{item.category}</span>
       </figcaption>
     </figure>
   );
@@ -191,6 +262,7 @@ function Lightbox({
   onPrev: () => void;
   onNext: () => void;
 }) {
+  const reduce = useReducedMotion();
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -232,13 +304,22 @@ function Lightbox({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: EASE_OUT_EXPO, delay: 0.2 }}
         >
-          <div>
-            <p className="text-[11.5px] font-semibold uppercase tracking-[0.22em] text-bg/60">{item.category}</p>
-            <p className="font-script mt-1 text-[2rem] leading-[1.1] md:text-[2.4rem]">{item.caption}</p>
-            <p className="tabular mt-2 text-[12.5px] text-bg/60">
-              {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-            </p>
-          </div>
+          {/* Only the text is keyed, so the buttons keep focus while stepping. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={item.id}
+              initial={reduce ? false : { opacity: 0, y: 10, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={reduce ? undefined : { opacity: 0, y: -6, filter: "blur(4px)", transition: { duration: 0.15 } }}
+              transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
+            >
+              <p className="text-[11.5px] font-semibold uppercase tracking-[0.22em] text-bg/60">{item.category}</p>
+              <p className="font-script mt-1 text-[2rem] leading-[1.1] md:text-[2.4rem]">{item.caption}</p>
+              <p className="tabular mt-2 text-[12.5px] text-bg/60">
+                {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+              </p>
+            </motion.div>
+          </AnimatePresence>
           <div className="flex items-center gap-2">
             <LightboxButton label="Previous" onClick={onPrev}>
               ←

@@ -6,7 +6,7 @@ import { useHydrated } from "@/lib/hydration";
 import { useCustomer } from "@/lib/store";
 
 /** Sends signed-out guests to sign in or create an account, then back to this exact URL. */
-export function CustomerGate({ children }: { children: React.ReactNode }) {
+export function CustomerGate({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
   const hydrated = useHydrated();
   const customer = useCustomer();
   const router = useRouter();
@@ -20,6 +20,6 @@ export function CustomerGate({ children }: { children: React.ReactNode }) {
     router.replace(`/account?next=${encodeURIComponent(here)}`);
   }, [hydrated, customer, router, pathname, params]);
 
-  if (!hydrated || !customer) return <div className="min-h-[60vh]" aria-busy />;
+  if (!hydrated || !customer) return <div aria-busy>{fallback ?? <div className="min-h-[60vh]" />}</div>;
   return <>{children}</>;
 }
