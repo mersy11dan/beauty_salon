@@ -6,19 +6,20 @@ import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { PaymentForm } from "@/components/ops/payment-form";
 import { PaidBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatDateShort, isSameWeek, todayISO } from "@/lib/dates";
+import { formatDateShort, isSameWeek } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
-import { useSalonStore } from "@/lib/store";
+import { useOps } from "@/lib/ops-store";
+import { useSalonStore, useSalonToday } from "@/lib/store";
 
 const METHOD_LABEL = { cash: "Cash", card: "Card", transfer: "Transfer" } as const;
 
 export default function LedgerPage() {
   const ledgerOn = useSalonStore((s) => s.settings.modules.ledger);
-  const payments = useSalonStore((s) => s.payments);
-  const updatePayment = useSalonStore((s) => s.updatePayment);
-  const removePayment = useSalonStore((s) => s.removePayment);
+  const payments = useOps((s) => s.payments);
+  const updatePayment = useOps((s) => s.updatePayment);
+  const removePayment = useOps((s) => s.removePayment);
   const [adding, setAdding] = useState(false);
-  const today = todayISO();
+  const today = useSalonToday();
 
   const totals = useMemo(() => {
     const paid = payments.filter((p) => p.status === "paid");
@@ -96,7 +97,7 @@ export default function LedgerPage() {
                   <td className="px-5 py-3.5">
                     <button
                       type="button"
-                      onClick={() => updatePayment(p.id, { status: p.status === "paid" ? "unpaid" : "paid" })}
+                      onClick={() => void updatePayment(p.id, { status: p.status === "paid" ? "unpaid" : "paid" })}
                       title="Toggle paid / unpaid"
                       className="rounded-full focus-visible:outline-2"
                     >
@@ -108,7 +109,9 @@ export default function LedgerPage() {
                     <button
                       type="button"
                       aria-label="Delete payment"
-                      onClick={() => removePayment(p.id)}
+                      onClick={() => {
+                        if (window.confirm(`Delete “${p.label}” (${formatMoney(p.amount)})? This can't be undone.`)) void removePayment(p.id);
+                      }}
                       className="rounded-md p-1.5 text-ops-muted transition-colors hover:bg-ops-bg hover:text-[#9b2c2c]"
                     >
                       <Trash2 size={15} strokeWidth={1.75} />

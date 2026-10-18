@@ -38,7 +38,7 @@ export default function BrandPage() {
 
   return (
     <>
-      <OpsTitle title="Brand and colours" intro="What the public site is called and how it looks. Changes apply immediately." />
+      <OpsTitle title="Brand and colours" intro="What the public site is called and how it looks. Changes save as you go." />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-6">
@@ -52,7 +52,7 @@ export default function BrandPage() {
                 <Input id="tagline" value={settings.tagline} onChange={(e) => update({ tagline: e.target.value })} />
               </Field>
               <Field label="Logo" htmlFor="logo" hint="Optional. Replaces the typed name in the header." className="sm:col-span-2">
-                <ImageInput id="logo" value={settings.logoDataUrl} onChange={(v) => update({ logoDataUrl: v })} aspect="aspect-[3/1]" />
+                <ImageInput id="logo" value={settings.logoUrl} onChange={(v) => update({ logoUrl: v })} aspect="aspect-[3/1]" />
               </Field>
             </div>
           </Card>
@@ -116,9 +116,9 @@ export default function BrandPage() {
           <p className="mb-2 text-[12.5px] font-semibold uppercase tracking-[0.08em] text-ops-muted">Preview</p>
           <div style={themeStyle(t)} className="overflow-hidden rounded-xl border border-ops-line bg-bg text-ink">
             <div className="flex flex-col items-center px-6 pb-4 pt-7 text-center">
-              {settings.logoDataUrl ? (
+              {settings.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={settings.logoDataUrl} alt="" className="h-8 w-auto" />
+                <img src={settings.logoUrl} alt="" className="h-8 w-auto" />
               ) : (
                 <span className="font-display text-[1.2rem] uppercase tracking-[0.2em]">{settings.name || "Salon name"}</span>
               )}

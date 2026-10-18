@@ -2,20 +2,27 @@
 
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { PaymentForm } from "@/components/ops/payment-form";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { addDays, formatDateLong, formatDateShort, formatTime, hhmmOf, minutesOf, todayISO } from "@/lib/dates";
+import { addDays, formatDateLong, formatDateShort, formatTime, hhmmOf, minutesOf } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
-import { useSalonStore } from "@/lib/store";
+import { useOps } from "@/lib/ops-store";
+import { useSalonStore, useSalonToday } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
 
 export default function DeskPage() {
-  const today = todayISO();
+  const today = useSalonToday();
   const [date, setDate] = useState(today);
-  const appointments = useSalonStore((s) => s.appointments);
+  const appointments = useOps((s) => s.appointments);
+  const ensureDay = useOps((s) => s.ensureDay);
+  const dayStatus = useOps((s) => (date < s.since ? (s.extraDays[date] ?? "loading") : "loaded"));
+
+  useEffect(() => {
+    void ensureDay(date);
+  }, [date, ensureDay]);
   const requested = useMemo(
     () =>
       appointments
@@ -65,7 +72,18 @@ export default function DeskPage() {
           </div>
         </div>
         <Card>
-          {day.length === 0 ? (
+          {dayStatus === "loading" ? (
+            <p className="px-5 py-10 text-center text-[14.5px] text-ops-muted" aria-busy>
+              Loading {formatDateShort(date)}…
+            </p>
+          ) : dayStatus === "error" ? (
+            <p className="px-5 py-10 text-center text-[14.5px] text-ops-muted">
+              {formatDateShort(date)} couldn&apos;t be loaded.{" "}
+              <button type="button" onClick={() => void ensureDay(date)} className="font-medium text-ops-ink underline underline-offset-2">
+                Try again
+              </button>
+            </p>
+          ) : day.length === 0 ? (
             <p className="px-5 py-10 text-center text-[14.5px] text-ops-muted">Nothing booked for {formatDateShort(date)}.</p>
           ) : (
             <ul className="divide-y divide-ops-line">
@@ -84,8 +102,8 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
   const service = useSalonStore((s) => s.services.find((x) => x.id === apt.serviceId));
   const who = useSalonStore((s) => s.staff.find((x) => x.id === apt.staffId));
   const ledgerOn = useSalonStore((s) => s.settings.modules.ledger);
-  const paid = useSalonStore((s) => s.payments.some((p) => p.appointmentId === apt.id));
-  const setStatus = useSalonStore((s) => s.setAppointmentStatus);
+  const paid = useOps((s) => s.payments.some((p) => p.appointmentId === apt.id));
+  const setStatus = useOps((s) => s.setAppointmentStatus);
   const [paying, setPaying] = useState(false);
 
   const end = hhmmOf(minutesOf(apt.time) + apt.durationMin);

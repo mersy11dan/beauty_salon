@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
-import { useHydrated } from "@/lib/hydration";
-import { DEMO_CUSTOMER } from "@/lib/seed";
+import { DEMO_CUSTOMER } from "@/lib/demo";
+import { safeNext } from "@/lib/format";
 import { useCustomer, useSalonStore } from "@/lib/store";
 import { PageTitle } from "./section";
 
@@ -15,11 +15,7 @@ type Mode = "sign-in" | "create";
 
 type Errors = { name?: string; phone?: string; email?: string; password?: string };
 
-/** Same-site paths only, so `?next=` can't send anyone to another origin or a `javascript:` URL. */
-function safeNext(raw: string | null) {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return "/book";
-  return raw;
-}
+const PASSWORD_MIN = 8;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -36,24 +32,25 @@ const TEXT_BUTTON = "cursor-pointer font-medium text-accent hover:text-accent-ho
 export function CustomerAuth() {
   const router = useRouter();
   const params = useSearchParams();
-  const hydrated = useHydrated();
   const customer = useCustomer();
+  const demoMode = useSalonStore((s) => s.demoMode);
   const signInCustomer = useSalonStore((s) => s.signInCustomer);
-  const createCustomer = useSalonStore((s) => s.createCustomer);
+  const signUpCustomer = useSalonStore((s) => s.signUpCustomer);
 
-  const next = safeNext(params.get("next"));
+  const next = safeNext(params.get("next"), "/book");
   const [mode, setMode] = useState<Mode>(params.get("mode") === "create" ? "create" : "sign-in");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (hydrated && customer) router.replace(next);
-  }, [hydrated, customer, router, next]);
+    if (customer) router.replace(next);
+  }, [customer, router, next]);
 
-  if (!hydrated || customer) return <div className="min-h-[60vh]" aria-busy />;
+  if (customer) return <div className="min-h-[60vh]" aria-busy />;
 
   function switchTo(m: Mode) {
     setMode(m);
@@ -61,25 +58,40 @@ export function CustomerAuth() {
     setPassword("");
   }
 
-  function signIn(e: React.FormEvent) {
-    e.preventDefault();
-    if (!signInCustomer(email, password)) {
-      setErrors({ password: "That email and password do not match." });
-    }
+  /** Server errors name the field they belong to; anything else shows under the password. */
+  function showServerError(error: string, field?: string) {
+    const key: keyof Errors = field === "name" || field === "phone" || field === "email" ? field : "password";
+    setErrors({ [key]: error });
   }
 
-  function create(e: React.FormEvent) {
+  async function signIn(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
+    if (!email.trim() || !password) {
+      setErrors({ password: "Enter your email and password." });
+      return;
+    }
+    setBusy(true);
+    setErrors({});
+    const result = await signInCustomer(email, password);
+    setBusy(false);
+    if (!result.ok) showServerError(result.error, result.field);
+  }
+
+  async function create(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
     const found: Errors = {};
     if (!name.trim()) found.name = "Add the name we should ask for.";
     if (phone.replace(/\D/g, "").length < 7) found.phone = "Add a phone number we can reach you on.";
     if (!EMAIL_RE.test(email.trim())) found.email = "Add an email address, like name@example.com.";
-    if (password.length < 6) found.password = "Use at least 6 characters.";
+    if (password.length < PASSWORD_MIN) found.password = `Use at least ${PASSWORD_MIN} characters.`;
     setErrors(found);
     if (Object.keys(found).length) return;
-    if (!createCustomer({ name, phone, email, password })) {
-      setErrors({ email: "There is already an account with this email. Sign in instead." });
-    }
+    setBusy(true);
+    const result = await signUpCustomer({ name, phone, email, password });
+    setBusy(false);
+    if (!result.ok) showServerError(result.error, result.field);
   }
 
   return (
@@ -127,8 +139,8 @@ export function CustomerAuth() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </Field>
-              <Button type="submit" size="lg" className="mt-1 w-full">
-                Sign in and continue
+              <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
+                {busy ? "Signing in…" : "Sign in and continue"}
               </Button>
               <p className="text-center text-[14px] text-muted">
                 First time here?{" "}
@@ -136,6 +148,7 @@ export function CustomerAuth() {
                   Create an account
                 </button>
               </p>
+              {demoMode && (
               <div className="hairline-t pt-5 text-[13px] text-muted">
                 <p>
                   Demo guest:{" "}
@@ -152,6 +165,7 @@ export function CustomerAuth() {
                 </p>
                 <p className="mt-1">Select it to fill the form.</p>
               </div>
+              )}
             </form>
           ) : (
             <form onSubmit={create} noValidate className="mt-7 flex flex-col gap-5">
@@ -185,7 +199,7 @@ export function CustomerAuth() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </Field>
-              <Field label="Password" htmlFor="create-password" error={errors.password} hint="At least 6 characters.">
+              <Field label="Password" htmlFor="create-password" error={errors.password} hint={`At least ${PASSWORD_MIN} characters.`}>
                 <Input
                   id="create-password"
                   type="password"
@@ -195,8 +209,8 @@ export function CustomerAuth() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </Field>
-              <Button type="submit" size="lg" className="mt-1 w-full">
-                Create account and continue
+              <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
+                {busy ? "Creating your account…" : "Create account and continue"}
               </Button>
               <p className="text-center text-[14px] text-muted">
                 Already have an account?{" "}

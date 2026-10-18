@@ -65,7 +65,7 @@ export function SiteHeader() {
     <>
       <header className="flex flex-col items-center px-6 pb-5 pt-8 text-center md:pt-10">
         <Link href="/" className="rounded-sm">
-          <Wordmark name={settings.name} logo={settings.logoDataUrl} />
+          <Wordmark name={settings.name} logo={settings.logoUrl} />
         </Link>
         {settings.tagline && (
           <p className="mt-2 text-[11.5px] font-medium uppercase tracking-[0.22em] text-muted">
@@ -94,7 +94,7 @@ export function SiteHeader() {
             )}
             tabIndex={stuck ? 0 : -1}
           >
-            <Wordmark name={settings.name} logo={settings.logoDataUrl} size="sm" />
+            <Wordmark name={settings.name} logo={settings.logoUrl} size="sm" />
           </Link>
 
           <div className="no-scrollbar w-full overflow-x-auto">

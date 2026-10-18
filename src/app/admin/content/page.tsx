@@ -1,9 +1,10 @@
 "use client";
 
+import { useMemo, useSyncExternalStore } from "react";
 import { ImageInput } from "@/components/ops/image-input";
 import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Textarea } from "@/components/ui/field";
+import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { WEEKDAY_NAMES } from "@/lib/dates";
 import { uid } from "@/lib/format";
 import { useSalonStore } from "@/lib/store";
@@ -11,10 +12,25 @@ import type { Weekday } from "@/lib/types";
 
 const ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
 
+const noSubscribe = () => () => {};
+
+/**
+ * Every IANA zone the browser knows. The server render lists only the saved zone, because
+ * the server's list can differ from the browser's and React would flag the mismatch.
+ */
+function useTimeZones(current: string) {
+  const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
+  return useMemo(() => {
+    const all = hydrated && typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
+    return all.includes(current) ? all : [current, ...all];
+  }, [hydrated, current]);
+}
+
 export default function ContentPage() {
   const settings = useSalonStore((s) => s.settings);
   const update = useSalonStore((s) => s.updateSettings);
   const { hero, about, contact, hours } = settings;
+  const zones = useTimeZones(settings.timeZone);
 
   const setHero = (patch: Partial<typeof hero>) => update({ hero: { ...hero, ...patch } });
   const setSlide = (id: string, patch: Partial<(typeof hero.slides)[number]>) =>
@@ -131,14 +147,23 @@ export default function ContentPage() {
               );
             })}
           </ul>
-          <div className="mt-5 max-w-xs">
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="Bookings at the same time" htmlFor="capacity" hint="Used when guests book without choosing a person. Usually the number of chairs.">
               <Input
                 id="capacity"
                 inputMode="numeric"
                 value={String(settings.capacity)}
-                onChange={(e) => update({ capacity: Math.max(1, Number(e.target.value) || 1) })}
+                onChange={(e) => update({ capacity: Math.min(50, Math.max(1, Number(e.target.value) || 1)) })}
               />
+            </Field>
+            <Field label="Time zone" htmlFor="time-zone" hint="Opening hours, free times and “today” follow the salon’s clock, wherever a guest books from.">
+              <Select id="time-zone" value={settings.timeZone} onChange={(e) => update({ timeZone: e.target.value })}>
+                {zones.map((z) => (
+                  <option key={z} value={z}>
+                    {z.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
             </Field>
           </div>
         </Card>

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Bodoni_Moda, Manrope, Pinyon_Script } from "next/font/google";
-import { StoreHydrator } from "@/lib/hydration";
+import { connection } from "next/server";
+import { SalonProvider } from "@/lib/store";
+import { getPublicData } from "@/server/data/public";
+import { getInitialSnapshot } from "@/server/data/snapshot";
 import "./globals.css";
 
 const bodoni = Bodoni_Moda({
@@ -22,19 +25,22 @@ const pinyon = Pinyon_Script({
   weight: "400",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Beauty Salon",
-    template: "%s · Beauty Salon",
-  },
-  description: "Nails, hair and makeup, by appointment.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  await connection();
+  const { settings } = await getPublicData();
+  const name = settings.name || "Beauty Salon";
+  return {
+    title: { default: name, template: `%s · ${name}` },
+    description: settings.tagline || "Nails, hair and makeup, by appointment.",
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const initial = await getInitialSnapshot();
   return (
     <html lang="en" className={`${bodoni.variable} ${manrope.variable} ${pinyon.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-ink">
-        <StoreHydrator>{children}</StoreHydrator>
+        <SalonProvider initial={initial}>{children}</SalonProvider>
       </body>
     </html>
   );
