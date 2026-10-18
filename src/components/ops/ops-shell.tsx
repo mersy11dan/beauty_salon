@@ -9,7 +9,8 @@ import { useHydrated } from "@/lib/hydration";
 import { useSalonStore, type Sync } from "@/lib/store";
 import type { Role, Session } from "@/lib/types";
 
-export type OpsNavItem = { href: string; label: string; exact?: boolean };
+/** Items sharing a `group` sit under one heading in the wide sidebar. */
+export type OpsNavItem = { href: string; label: string; exact?: boolean; group?: string };
 
 export function OpsShell({
   area,
@@ -60,10 +61,16 @@ export function OpsShell({
         </div>
         <nav aria-label={`${area} sections`} className="no-scrollbar overflow-x-auto px-3 pb-3 lg:flex-1 lg:px-3 lg:pb-0">
           <ul className="flex gap-1 lg:flex-col">
-            {nav.map((item) => {
+            {nav.map((item, i) => {
               const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/");
+              const heading = item.group && item.group !== nav[i - 1]?.group ? item.group : null;
               return (
                 <li key={item.href} className="shrink-0">
+                  {heading && (
+                    <p aria-hidden className="hidden px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-ops-muted/80 lg:block">
+                      {heading}
+                    </p>
+                  )}
                   <Link
                     href={item.href}
                     className={clsx(
