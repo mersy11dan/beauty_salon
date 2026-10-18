@@ -1,15 +1,69 @@
 "use client";
 
+import { useState } from "react";
 import { ImageInput } from "@/components/ops/image-input";
 import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { WEEKDAY_NAMES } from "@/lib/dates";
 import { uid } from "@/lib/format";
+import { checkPhone, parsePhone, phoneHint, type PhoneValue } from "@/lib/phone";
 import { useSalonStore } from "@/lib/store";
 import type { Weekday } from "@/lib/types";
+import { checkEmail } from "@/lib/validation";
 
 const ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
+
+/** Landlines are fine here. Saves once the number is complete, so the site never shows half a number. */
+function ContactPhone({ value, onSave }: { value: string; onSave: (e164: string) => void }) {
+  const [phone, setPhone] = useState<PhoneValue>(() => parsePhone(value));
+  const [touched, setTouched] = useState(false);
+  const check = checkPhone(phone, "any");
+  const error = touched && !check.ok ? check.error : undefined;
+  return (
+    <Field label="Phone" htmlFor="phone" error={error} hint={`${phoneHint(phone.country, "any")} Saves once complete.`}>
+      <PhoneInput
+        id="phone"
+        kind="any"
+        value={phone}
+        invalid={!!error}
+        describedBy={error ? "phone-error" : "phone-hint"}
+        onChange={(v) => {
+          setPhone(v);
+          const r = checkPhone(v, "any");
+          if (r.ok) onSave(r.e164);
+        }}
+        onBlur={() => setTouched(true)}
+      />
+    </Field>
+  );
+}
+
+function ContactEmail({ value, onSave }: { value: string; onSave: (email: string) => void }) {
+  const [email, setEmail] = useState(value);
+  const [touched, setTouched] = useState(false);
+  const problem = checkEmail(email);
+  const error = touched ? problem : undefined;
+  return (
+    <Field label="Email" htmlFor="email" error={error} hint="Saves once it is a full address.">
+      <Input
+        id="email"
+        type="email"
+        autoCapitalize="none"
+        spellCheck={false}
+        aria-invalid={!!error}
+        aria-describedby={error ? "email-error" : "email-hint"}
+        value={email}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          if (!checkEmail(e.target.value)) onSave(e.target.value.trim());
+        }}
+        onBlur={() => setTouched(true)}
+      />
+    </Field>
+  );
+}
 
 export default function ContentPage() {
   const settings = useSalonStore((s) => s.settings);
@@ -85,12 +139,8 @@ export default function ContentPage() {
         <Card className="p-5">
           <h2 className="mb-4 text-[15px] font-semibold text-ops-ink">Contact</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Phone" htmlFor="phone">
-              <Input id="phone" value={contact.phone} onChange={(e) => update({ contact: { ...contact, phone: e.target.value } })} />
-            </Field>
-            <Field label="Email" htmlFor="email">
-              <Input id="email" type="email" value={contact.email} onChange={(e) => update({ contact: { ...contact, email: e.target.value } })} />
-            </Field>
+            <ContactPhone value={contact.phone} onSave={(phone) => update({ contact: { ...contact, phone } })} />
+            <ContactEmail value={contact.email} onSave={(email) => update({ contact: { ...contact, email } })} />
             <Field label="Address" htmlFor="address" className="sm:col-span-2">
               <Input id="address" value={contact.address} onChange={(e) => update({ contact: { ...contact, address: e.target.value } })} />
             </Field>

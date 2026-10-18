@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { useHydrated } from "@/lib/hydration";
 import { useSalonStore } from "@/lib/store";
+import { checkEmail } from "@/lib/validation";
 
 export default function LoginPage() {
   return (
@@ -27,7 +28,10 @@ function LoginInner() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState<string>();
   const [error, setError] = useState("");
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const next = params.get("next");
 
@@ -37,13 +41,33 @@ function LoginInner() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    const badEmail = checkEmail(email);
+    setEmailError(badEmail);
+    if (badEmail) {
+      setError("");
+      emailRef.current?.focus();
+      return;
+    }
+    if (!password) {
+      setError("Enter your password.");
+      passwordRef.current?.focus();
+      return;
+    }
     const role = signIn(email, password);
     if (!role) {
       setError("That email and password do not match. Check the demo logins below.");
+      passwordRef.current?.focus();
       return;
     }
     router.replace(next ?? (role === "admin" ? "/admin" : "/desk"));
   }
+
+  const fill = (account: { email: string; password: string }) => {
+    setEmail(account.email);
+    setPassword(account.password);
+    setEmailError(undefined);
+    setError("");
+  };
 
   return (
     <div className="flex min-h-dvh flex-col bg-ops-bg text-ops-ink">
@@ -55,11 +79,38 @@ function LoginInner() {
         <p className="mt-1.5 text-[14.5px] text-ops-muted">For salon staff and the site administrator.</p>
 
         <form onSubmit={submit} noValidate className="mt-8 flex flex-col gap-5">
-          <Field label="Email" htmlFor="email">
-            <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Field label="Email" htmlFor="email" error={emailError}>
+            <Input
+              ref={emailRef}
+              id="email"
+              type="email"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-invalid={!!emailError}
+              aria-describedby={emailError ? "email-error" : undefined}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError) setEmailError(checkEmail(e.target.value));
+              }}
+              onBlur={() => email.trim() && setEmailError(checkEmail(email))}
+            />
           </Field>
           <Field label="Password" htmlFor="password" error={error}>
-            <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input
+              ref={passwordRef}
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              aria-invalid={!!error}
+              aria-describedby={error ? "password-error" : undefined}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError("");
+              }}
+            />
           </Field>
           <Button type="submit" size="lg" className="mt-2 bg-ops-accent text-white hover:bg-black">
             Sign in
@@ -71,13 +122,13 @@ function LoginInner() {
           <dl className="mt-3 grid grid-cols-[5rem_1fr] gap-y-2 text-ops-muted">
             <dt>Admin</dt>
             <dd>
-              <button type="button" className="text-left hover:text-ops-ink" onClick={() => { setEmail(accounts.admin.email); setPassword(accounts.admin.password); }}>
+              <button type="button" className="text-left hover:text-ops-ink" onClick={() => fill(accounts.admin)}>
                 {accounts.admin.email} · {accounts.admin.password}
               </button>
             </dd>
             <dt>Staff</dt>
             <dd>
-              <button type="button" className="text-left hover:text-ops-ink" onClick={() => { setEmail(accounts.staff.email); setPassword(accounts.staff.password); }}>
+              <button type="button" className="text-left hover:text-ops-ink" onClick={() => fill(accounts.staff)}>
                 {accounts.staff.email} · {accounts.staff.password}
               </button>
             </dd>

@@ -5,6 +5,7 @@ import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { useSalonStore } from "@/lib/store";
+import { checkEmail, checkNewPassword, PASSWORD_MIN } from "@/lib/validation";
 
 export default function AccessPage() {
   const accounts = useSalonStore((s) => s.accounts);
@@ -14,11 +15,14 @@ export default function AccessPage() {
   const [password, setPassword] = useState(accounts.staff.password);
   const [saved, setSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || password.length < 6) return;
-    setStaffAccount(email.trim(), password);
+    const found = { email: checkEmail(email), password: checkNewPassword(password) };
+    setErrors(found);
+    if (found.email || found.password) return;
+    setStaffAccount(email.trim().toLowerCase(), password);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -30,12 +34,34 @@ export default function AccessPage() {
         <Card className="p-5">
           <h2 className="mb-1 text-[15px] font-semibold text-ops-ink">Staff login</h2>
           <p className="mb-4 text-[13.5px] text-ops-muted">One shared login for the desk. In the live version each person gets their own.</p>
-          <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
-            <Field label="Email" htmlFor="staff-email">
-              <Input id="staff-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <form onSubmit={save} noValidate className="grid gap-4 sm:grid-cols-2">
+            <Field label="Email" htmlFor="staff-email" error={errors.email}>
+              <Input
+                id="staff-email"
+                type="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "staff-email-error" : undefined}
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((p) => ({ ...p, email: checkEmail(e.target.value) }));
+                }}
+                onBlur={() => email.trim() && setErrors((p) => ({ ...p, email: checkEmail(email) }))}
+              />
             </Field>
-            <Field label="Password" htmlFor="staff-password" hint="At least 6 characters.">
-              <Input id="staff-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Field label="Password" htmlFor="staff-password" error={errors.password} hint={`At least ${PASSWORD_MIN} characters.`}>
+              <Input
+                id="staff-password"
+                aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? "staff-password-error" : "staff-password-hint"}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((p) => ({ ...p, password: checkNewPassword(e.target.value) }));
+                }}
+              />
             </Field>
             <div className="flex items-center gap-3 sm:col-span-2">
               <Button type="submit" size="sm" className="bg-ops-accent text-white hover:bg-black">

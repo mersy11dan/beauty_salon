@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Reveal } from "@/components/motion/reveal";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import { PhoneInput } from "@/components/ui/phone-input";
 import {
   formatDateLong,
   formatDateShort,
@@ -19,10 +20,12 @@ import {
   todayISO,
   WEEKDAY_SHORT,
 } from "@/lib/dates";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, PAYMENT_NOTE } from "@/lib/format";
+import { checkPhone, formatPhone, parsePhone, phoneHint, telHref, type PhoneValue } from "@/lib/phone";
 import { availableSlots, upcomingOpenDates } from "@/lib/slots";
 import { useCustomer, useSalonStore } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
+import { checkName } from "@/lib/validation";
 import { Avatar } from "./home-sections";
 import { PageTitle } from "./section";
 import { groupByCategory } from "./service-list";
@@ -159,7 +162,10 @@ function SummaryRow({ label, value }: { label: string; value?: string | null | f
 
 type Errors = { name?: string; phone?: string; time?: string };
 
-const phoneOk = (v: string) => v.replace(/\D/g, "").length >= 7;
+const phoneError = (v: PhoneValue) => {
+  const r = checkPhone(v);
+  return r.ok ? undefined : r.error;
+};
 
 export function BookingForm() {
   const params = useSearchParams();
@@ -179,7 +185,7 @@ export function BookingForm() {
   const [rawDate, setDate] = useState<string>("");
   const [rawTime, setTime] = useState<string>("");
   const [name, setName] = useState(customer?.name ?? "");
-  const [phone, setPhone] = useState(customer?.phone ?? "");
+  const [phone, setPhone] = useState<PhoneValue>(() => parsePhone(customer?.phone));
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [done, setDone] = useState<Appointment | null>(null);
@@ -256,18 +262,19 @@ export function BookingForm() {
     e.preventDefault();
     const next: Errors = {};
     if (!time) next.time = "Pick a time that suits you.";
-    if (!name.trim()) next.name = "Add the name we should ask for.";
-    if (!phoneOk(phone)) next.phone = "Add a phone number we can reach you on.";
+    next.name = checkName(name);
+    next.phone = phoneError(phone);
     setErrors(next);
     if (next.time) return focusInvalid(timeRef.current);
     if (next.name) return focusInvalid(nameRef.current);
     if (next.phone) return focusInvalid(phoneRef.current);
-    if (!service) return;
+    const checked = checkPhone(phone);
+    if (!service || !checked.ok) return;
 
     const apt = createAppointment({
       customerId: customer?.id,
       guestName: name.trim(),
-      guestPhone: phone.trim(),
+      guestPhone: checked.e164,
       serviceId: service.id,
       staffId: staffOn && staffId !== ANYONE ? staffId : null,
       date,
@@ -282,13 +289,13 @@ export function BookingForm() {
   if (done && service) {
     const who = staff.find((m) => m.id === done.staffId);
     const end = hhmmOf(minutesOf(done.time) + done.durationMin);
-    const tel = settings.contact.phone.replace(/[^+\d]/g, "");
+    const salonPhone = formatPhone(settings.contact.phone);
     return (
       <div ref={doneRef} tabIndex={-1} className="focus:outline-none">
         <PageTitle
           label="Request sent"
           title={`Thank you, ${done.guestName.split(/\s+/)[0]}`}
-          intro={`Someone at the desk will text or call ${done.guestPhone} to confirm. If you need to change anything before then, call ${settings.contact.phone}.`}
+          intro={`Someone at the desk will text or call ${formatPhone(done.guestPhone)} to confirm. If you need to change anything before then, call ${salonPhone}.`}
         />
         <div className="mx-auto grid max-w-6xl gap-12 px-6 pb-20 md:pb-28 lg:grid-cols-12 lg:gap-16">
           <Reveal y={16} className="lg:col-span-7">
@@ -305,7 +312,7 @@ export function BookingForm() {
                 <SummaryRow label="Price" value={formatMoney(service.price)} />
               </dl>
               <p className="mt-5 text-[13.5px] leading-[1.55] text-muted">
-                Payment is at the desk, after the appointment. Cash, card or transfer.
+                Payment is at the desk, after the appointment. {PAYMENT_NOTE}
               </p>
             </div>
           </Reveal>
@@ -315,8 +322,8 @@ export function BookingForm() {
             <address className="flex flex-col gap-4 not-italic">
               <p className="text-[17px] leading-[1.5] text-ink">{settings.contact.address}</p>
               <p className="flex flex-col gap-1 text-[15.5px] text-muted">
-                <a href={`tel:${tel}`} className="w-fit hover:text-ink">
-                  {settings.contact.phone}
+                <a href={telHref(settings.contact.phone)} className="tabular w-fit hover:text-ink">
+                  {salonPhone}
                 </a>
                 <a href={`mailto:${settings.contact.email}`} className="w-fit hover:text-ink">
                   {settings.contact.email}
@@ -346,7 +353,7 @@ export function BookingForm() {
                   setDone(null);
                   setTime("");
                   setName(customer?.name ?? "");
-                  setPhone(customer?.phone ?? "");
+                  setPhone(parsePhone(customer?.phone));
                   setNote("");
                   setErrors({});
                   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -362,7 +369,7 @@ export function BookingForm() {
   }
 
   const total = staffOn ? 4 : 3;
-  const detailsDone = !!name.trim() && phoneOk(phone);
+  const detailsDone = !checkName(name) && !phoneError(phone);
   const end = service && time ? hhmmOf(minutesOf(time) + service.durationMin) : "";
   const staffName = staffId === ANYONE ? "Whoever is free first" : staff.find((m) => m.id === staffId)?.name;
   const hint = !service
@@ -370,7 +377,7 @@ export function BookingForm() {
     : !time
       ? "Next, pick a day and a time."
       : !detailsDone
-        ? "Last step: your name and phone number."
+        ? "Last step: your name and mobile number."
         : "Nothing is charged online. We confirm by text or call.";
 
   return (
@@ -439,7 +446,7 @@ export function BookingForm() {
                       <span className="tabular hidden w-20 shrink-0 text-right text-[13.5px] leading-6 text-muted sm:block">
                         {formatDuration(s.durationMin)}
                       </span>
-                      <span className="tabular w-16 shrink-0 text-right text-[16px] leading-6 text-ink">
+                      <span className="tabular w-24 shrink-0 whitespace-nowrap text-right text-[16px] leading-6 text-ink">
                         {formatMoney(s.price)}
                       </span>
                     </Choice>
@@ -544,7 +551,7 @@ export function BookingForm() {
                   </div>
                 ) : (
                   <p className="text-[14.5px] text-muted">
-                    There are no open days in the next few weeks. Call {settings.contact.phone} and we will find a time.
+                    There are no open days in the next few weeks. Call {formatPhone(settings.contact.phone)} and we will find a time.
                   </p>
                 )}
               </fieldset>
@@ -631,25 +638,24 @@ export function BookingForm() {
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value);
-                    if (e.target.value.trim()) clearError("name");
+                    if (errors.name) setErrors((prev) => ({ ...prev, name: checkName(e.target.value) }));
                   }}
+                  onBlur={() => name.trim() && setErrors((prev) => ({ ...prev, name: checkName(name) }))}
                 />
               </Field>
-              <Field label="Phone" htmlFor="phone" error={errors.phone} hint="We confirm by text or call.">
-                <Input
-                  ref={phoneRef}
+              <Field label="Mobile number" htmlFor="phone" error={errors.phone} hint={phoneHint(phone.country)}>
+                <PhoneInput
                   id="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
+                  inputRef={phoneRef}
                   required
-                  aria-invalid={!!errors.phone}
-                  aria-describedby={errors.phone ? "phone-error" : "phone-hint"}
                   value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
-                    if (phoneOk(e.target.value)) clearError("phone");
+                  invalid={!!errors.phone}
+                  describedBy={errors.phone ? "phone-error" : "phone-hint"}
+                  onChange={(v) => {
+                    setPhone(v);
+                    if (errors.phone) setErrors((prev) => ({ ...prev, phone: phoneError(v) }));
                   }}
+                  onBlur={() => phone.number.trim() && setErrors((prev) => ({ ...prev, phone: phoneError(phone) }))}
                 />
               </Field>
               <Field label="Anything we should know (optional)" htmlFor="note" className="sm:col-span-2">
