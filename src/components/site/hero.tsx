@@ -36,7 +36,7 @@ export function Hero() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="order-2 flex flex-col items-start lg:order-1 lg:pr-6">
+      <div className="flex flex-col items-start lg:pr-6">
         {slides.length > 1 && (
           <div
             role="tablist"
@@ -98,7 +98,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="order-1 lg:order-2">
+      <div>
         <div className="relative mx-auto aspect-[4/5] w-full max-w-[420px] sm:max-w-[480px] lg:aspect-auto lg:h-[min(72vh,680px)] lg:max-w-none">
           {slides.map((s, i) => (
             // eslint-disable-next-line @next/next/no-img-element
