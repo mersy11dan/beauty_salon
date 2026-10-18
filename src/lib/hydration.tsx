@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
 import { useSalonStore } from "./store";
 
 const HydratedContext = createContext(false);
@@ -22,4 +22,15 @@ export function StoreHydrator({ children }: { children: React.ReactNode }) {
   return <HydratedContext.Provider value={hydrated}>{children}</HydratedContext.Provider>;
 }
 
-export const useHydrated = () => useContext(HydratedContext);
+const noSubscribe = () => () => {};
+
+/**
+ * Suspense boundaries hydrate after the store may already be rehydrated, so the
+ * context alone can read `true` during a boundary's hydration pass. The server
+ * snapshot keeps that pass identical to the server HTML.
+ */
+export function useHydrated() {
+  const storeReady = useContext(HydratedContext);
+  const hydrating = useSyncExternalStore(noSubscribe, () => false, () => true);
+  return storeReady && !hydrating;
+}
