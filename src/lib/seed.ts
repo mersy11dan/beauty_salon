@@ -213,7 +213,7 @@ export function createSeed(): SalonData {
     ],
     payments: [
       { id: "pay_1", amount: 500, method: "telebirr", status: "paid", appointmentId: "apt_8", label: "Brow threading and tint · Saron Desta", date: yesterday, createdAt: now },
-      { id: "pay_2", amount: 1200, method: "cash", status: "paid", appointmentId: null, label: "Gel manicure · walk-in", date: yesterday, createdAt: now },
+      { id: "pay_2", amount: 1200, method: "cash", status: "paid", appointmentId: null, label: "Gel manicure · walk-in", date: today, createdAt: now },
       { id: "pay_3", amount: 4500, method: "transfer", status: "unpaid", appointmentId: null, label: "Full-head colour · deposit pending", date: today, createdAt: now },
     ],
     customers: [
