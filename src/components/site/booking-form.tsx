@@ -21,7 +21,7 @@ import {
 } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { availableSlots, upcomingOpenDates } from "@/lib/slots";
-import { useSalonStore } from "@/lib/store";
+import { useCustomer, useSalonStore } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
 import { Avatar } from "./home-sections";
 import { PageTitle } from "./section";
@@ -168,6 +168,8 @@ export function BookingForm() {
   const staff = useSalonStore((s) => s.staff);
   const appointments = useSalonStore((s) => s.appointments);
   const createAppointment = useSalonStore((s) => s.createAppointment);
+  const customer = useCustomer();
+  const signOutCustomer = useSalonStore((s) => s.signOutCustomer);
 
   const staffOn = settings.modules.staff && staff.length > 0;
 
@@ -176,8 +178,8 @@ export function BookingForm() {
   const [rawCategory, setCategory] = useState<string | null>(null);
   const [rawDate, setDate] = useState<string>("");
   const [rawTime, setTime] = useState<string>("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(customer?.name ?? "");
+  const [phone, setPhone] = useState(customer?.phone ?? "");
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [done, setDone] = useState<Appointment | null>(null);
@@ -263,6 +265,7 @@ export function BookingForm() {
     if (!service) return;
 
     const apt = createAppointment({
+      customerId: customer?.id,
       guestName: name.trim(),
       guestPhone: phone.trim(),
       serviceId: service.id,
@@ -342,8 +345,8 @@ export function BookingForm() {
                 onClick={() => {
                   setDone(null);
                   setTime("");
-                  setName("");
-                  setPhone("");
+                  setName(customer?.name ?? "");
+                  setPhone(customer?.phone ?? "");
                   setNote("");
                   setErrors({});
                   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -604,6 +607,18 @@ export function BookingForm() {
           </Step>
 
           <Step id="details" n={total} total={total} title="Your details" done={detailsDone}>
+            {customer && (
+              <p className="mb-5 text-[14px] text-muted">
+                Signed in as <span className="text-ink">{customer.email}</span>.{" "}
+                <button
+                  type="button"
+                  onClick={signOutCustomer}
+                  className="cursor-pointer font-medium text-accent hover:text-accent-hover"
+                >
+                  Not you? Sign out
+                </button>
+              </p>
+            )}
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Name" htmlFor="name" error={errors.name}>
                 <Input
