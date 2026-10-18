@@ -31,13 +31,7 @@ export function ScriptMarquee() {
   }, [slides, services]);
 
   return (
-    <Marquee className="hairline-t hairline-b py-5 md:py-6" durationSec={(words.length + 1) * 9}>
-      <span className="flex items-center">
-        <span lang="am" className="font-ethiopic whitespace-nowrap px-6 text-display-md font-light text-ink/80 md:px-10">
-          እንኳን ደህና መጡ
-        </span>
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />
-      </span>
+    <Marquee className="hairline-t hairline-b py-5 md:py-6" durationSec={words.length * 9}>
       {words.map((w, i) => (
         <span key={i} className="flex items-center">
           <span className="font-script whitespace-nowrap px-6 text-script-md text-ink/80 md:px-10">{w}</span>
