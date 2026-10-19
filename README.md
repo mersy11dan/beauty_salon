@@ -96,7 +96,7 @@ Do this once for the demo (with `DEMO_MODE=true`) and once for every client (wit
 
 Every page reads from the database, so a deployment without one shows only the "We'll be right back" page and `/api/health` reports the database as down.
 
-1. **Database.** On Vercel, open the project's **Storage** tab, create a **Neon** database and connect it to the project; Vercel adds `DATABASE_URL`. Pick the region closest to the salon (Frankfurt for Ethiopia), then set the same region under the project's **Settings → Functions**, because Vercel runs functions in Washington, D.C. (`iad1`) by default. When connecting, turn on **Preview** branching so preview deployments get their own copy of the database instead of the live one. Elsewhere, create a free Neon project and copy the **pooled** connection string (its host contains `-pooler`).
+1. **Database.** On Vercel, open the project's **Storage** tab, create a **Neon** database and connect it to the project; Vercel adds `DATABASE_URL`. Pick the region closest to the salon (Frankfurt for Ethiopia), then set the same region under the project's **Settings → Functions**, because Vercel runs functions in Washington, D.C. (`iad1`) by default. On the demo, turn on **Preview** branching when connecting, so preview deployments get their own copy of the database instead of the live one. Neon Free allows 10 branches per database and drops a preview branch only when its deployment is deleted, so remove old `preview/...` branches in the Neon console now and then. Elsewhere, create a free Neon project and copy the **pooled** connection string (its host contains `-pooler`).
 2. **Photos.** Create a free Cloudinary account. Copy the **API environment variable** (`cloudinary://API_KEY:API_SECRET@CLOUD_NAME`) from Settings, then API Keys. Without it, photo uploads fail on Vercel, whose disk is read-only.
 3. **Environment.** Set these on the host:
 
@@ -119,7 +119,7 @@ Every page reads from the database, so a deployment without one shows only the "
 
      For the demo, run `npm run db:seed -- --demo` instead to add the demo logins and sample bookings.
 
-5. **Deploy** by connecting the repo to Vercel, or with the usual `npm run build` and `npm run start` (then run `npm run db:migrate` whenever a change adds a migration).
+5. **Deploy** by connecting the repo to Vercel, or with the usual `npm run build` and `npm run start` (then run `npm run db:migrate` whenever a change adds a migration). On every client project, set **Settings → Build and Deployment → Ignored Build Step** to **Only build production**: all projects import the same repository, so otherwise every push to a test branch builds a preview for every client. Test on the demo instead.
 
 ### Good to know
 

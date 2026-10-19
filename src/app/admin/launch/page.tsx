@@ -321,10 +321,15 @@ function DeployGuide() {
         </li>
         <li>
           In the new project, open <strong className="font-medium">Storage</strong>, create a <strong className="font-medium">Neon</strong>{" "}
-          Postgres database (the free plan is enough to start) in the region closest to the salon, and connect it to the project with{" "}
-          <strong className="font-medium">Preview</strong> branching on, so test deployments never touch the live data. Use a new database for
-          every client, so no two clients ever share data. Then, under <strong className="font-medium">Settings → Functions</strong>, set the
-          function region to the same place.
+          Postgres database (the free plan is enough to start) in the region closest to the salon, and connect it to the project. Use a new
+          database for every client, so no two clients ever share data. Then, under <strong className="font-medium">Settings → Functions</strong>,
+          set the function region to the same place.
+        </li>
+        <li>
+          Under <strong className="font-medium">Settings → Build and Deployment</strong>, set{" "}
+          <strong className="font-medium">Ignored Build Step</strong> to <strong className="font-medium">Only build production</strong>. Every
+          client project uses this same repository, so otherwise each push to a test branch builds a preview for every client. Test changes on
+          the demo instead.
         </li>
         <li>
           Create a <Ext href="https://cloudinary.com">Cloudinary</Ext> account for the client and copy the{" "}
