@@ -8,6 +8,7 @@ import { SplitWords } from "@/components/motion/split-text";
 import { Tilt } from "@/components/motion/tilt";
 import { isDarkTheme } from "@/components/site/theme-vars";
 import { ButtonLink } from "@/components/ui/button";
+import { telHref } from "@/lib/phone";
 import { useCopy } from "@/lib/site-hooks";
 import { useSalonStore } from "@/lib/store";
 
@@ -35,7 +36,7 @@ export function Hero() {
     ? { href: "/book", label: copy.heroBook }
     : modules.services
       ? { href: "/services", label: copy.heroServices }
-      : { href: `tel:${contact.phone.replace(/[^+\d]/g, "")}`, label: copy.heroCall };
+      : { href: telHref(contact.phone), label: copy.heroCall };
 
   return (
     <section
@@ -58,8 +59,8 @@ export function Hero() {
                   aria-selected={i === index}
                   onClick={() => setIndex(i)}
                   className={clsx(
-                    "relative rounded-sm pb-1 transition-colors duration-500",
-                    i === index ? "text-accent" : "text-faint hover:text-muted",
+                    "hit-area rounded-sm pb-1 transition-colors duration-500",
+                    i === index ? "text-accent" : "text-muted hover:text-ink",
                   )}
                 >
                   {s.label}

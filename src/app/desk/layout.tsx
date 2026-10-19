@@ -1,16 +1,10 @@
-"use client";
-
 import { OpsShell } from "@/components/ops/ops-shell";
-import { useModules } from "@/lib/store";
+import { enterOpsArea } from "@/server/data/ops-area";
 
-export default function DeskLayout({ children }: { children: React.ReactNode }) {
-  const modules = useModules();
-  const nav = [
-    { href: "/desk", label: "Appointments", exact: true },
-    ...(modules.ledger ? [{ href: "/desk/ledger", label: "Payments" }] : []),
-  ];
+export default async function DeskLayout({ children }: { children: React.ReactNode }) {
+  const { session, ops } = await enterOpsArea("/desk", ["staff", "admin"]);
   return (
-    <OpsShell area="Desk" allow={["staff", "admin"]} nav={nav}>
+    <OpsShell area="Desk" session={session} ops={ops}>
       {children}
     </OpsShell>
   );

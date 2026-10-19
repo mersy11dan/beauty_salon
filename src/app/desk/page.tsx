@@ -7,19 +7,23 @@ import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { PaymentForm } from "@/components/ops/payment-form";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { addDays, formatDateLong, formatDateShort, hhmmOf, minutesOf, todayISO } from "@/lib/dates";
+import { addDays, formatDateLong, formatDateShort, hhmmOf, minutesOf } from "@/lib/dates";
+import { useOps } from "@/lib/ops-store";
+import { formatPhone, telHref } from "@/lib/phone";
 import { useMoney, useTime } from "@/lib/site-hooks";
-import { useSalonStore } from "@/lib/store";
+import { useSalonStore, useSalonToday } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
 
 export default function DeskPage() {
-  const today = todayISO();
+  const today = useSalonToday();
   const [date, setDate] = useState(today);
-  const appointments = useSalonStore((s) => s.appointments);
-  const loadMonths = useSalonStore((s) => s.loadMonths);
+  const appointments = useOps((s) => s.appointments);
+  const ensureDay = useOps((s) => s.ensureDay);
+  const dayStatus = useOps((s) => (date < s.since ? (s.extraDays[date] ?? "loading") : "loaded"));
+
   useEffect(() => {
-    void loadMonths([date.slice(0, 7)]).catch(() => undefined);
-  }, [date, loadMonths]);
+    void ensureDay(date);
+  }, [date, ensureDay]);
   const requested = useMemo(
     () =>
       appointments
@@ -69,7 +73,18 @@ export default function DeskPage() {
           </div>
         </div>
         <Card>
-          {day.length === 0 ? (
+          {dayStatus === "loading" ? (
+            <p className="px-5 py-10 text-center text-[14.5px] text-ops-muted" aria-busy>
+              Loading {formatDateShort(date)}…
+            </p>
+          ) : dayStatus === "error" ? (
+            <p className="px-5 py-10 text-center text-[14.5px] text-ops-muted">
+              {formatDateShort(date)} couldn&apos;t be loaded.{" "}
+              <button type="button" onClick={() => void ensureDay(date)} className="font-medium text-ops-ink underline underline-offset-2">
+                Try again
+              </button>
+            </p>
+          ) : day.length === 0 ? (
             <p className="px-5 py-10 text-center text-[14.5px] text-ops-muted">Nothing booked for {formatDateShort(date)}.</p>
           ) : (
             <ul className="divide-y divide-ops-line">
@@ -88,8 +103,8 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
   const service = useSalonStore((s) => s.services.find((x) => x.id === apt.serviceId));
   const who = useSalonStore((s) => s.staff.find((x) => x.id === apt.staffId));
   const ledgerOn = useSalonStore((s) => s.settings.modules.ledger);
-  const paid = useSalonStore((s) => s.payments.some((p) => p.appointmentId === apt.id));
-  const setStatus = useSalonStore((s) => s.setAppointmentStatus);
+  const paid = useOps((s) => s.payments.some((p) => p.appointmentId === apt.id));
+  const setStatus = useOps((s) => s.setAppointmentStatus);
   const [paying, setPaying] = useState(false);
   const formatMoney = useMoney();
   const formatTime = useTime();
@@ -100,9 +115,11 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
   return (
     <li className={clsx("px-5 py-4", faded && "opacity-60")}>
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-6">
-        <div className="tabular w-32 shrink-0 text-[14px] text-ops-ink">
+        <div className="tabular w-40 shrink-0 text-[14px] text-ops-ink">
           {showDate && <div className="text-[12.5px] text-ops-muted">{formatDateShort(apt.date)}</div>}
-          {formatTime(apt.time)} – {formatTime(end)}
+          <span className="whitespace-nowrap">
+            {formatTime(apt.time)} – {formatTime(end)}
+          </span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -115,7 +132,7 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
             {who ? ` · ${who.name}` : ""}
             {service ? ` · ${formatMoney(service.price)}` : ""}
             {" · "}
-            <a href={`tel:${apt.guestPhone.replace(/[^+\d]/g, "")}`} className="hover:text-ops-ink">{apt.guestPhone}</a>
+            <a href={telHref(apt.guestPhone)} className="tabular whitespace-nowrap hover:text-ops-ink">{formatPhone(apt.guestPhone)}</a>
           </p>
           {apt.note && <p className="mt-1.5 text-[13.5px] italic text-ops-muted">“{apt.note}”</p>}
         </div>

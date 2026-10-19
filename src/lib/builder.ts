@@ -1,4 +1,7 @@
-import type { DataMode, SiteContent } from "./types";
+import type { SiteContent } from "./types";
+
+/** "demo" is the sample site you build on (DEMO_MODE=true); "live" is a client's own deployment. */
+export type SiteMode = "demo" | "live";
 
 export type BuilderPhase = { id: string; title: string; blurb: string };
 
@@ -33,7 +36,7 @@ const offerText = (c: SiteContent) => c.offers.map((o) => [o.title, o.detail, o.
 export function builderSteps(
   content: SiteContent,
   seed: SiteContent,
-  opts: { mode: DataMode; staffLogin: boolean },
+  opts: { mode: SiteMode; staffLogin: boolean },
 ): BuilderStep[] {
   const s = content.settings;
   const d = seed.settings;
@@ -52,8 +55,8 @@ export function builderSteps(
       changed:
         s.name !== d.name ||
         s.tagline !== d.tagline ||
-        !!s.logoDataUrl ||
-        !!s.faviconDataUrl ||
+        !!s.logoUrl ||
+        !!s.faviconUrl ||
         !same(s.seo, d.seo) ||
         !same(s.socials, d.socials),
     },
@@ -141,7 +144,7 @@ export function builderSteps(
       id: "contact",
       phase: "fill",
       title: "Contact and hours",
-      blurb: "Address, phone, email, map link, opening hours, currency and clock style.",
+      blurb: "Address, phone, email, map link, opening hours, time zone, currency and clock style.",
       href: "/admin/contact",
       applies: true,
       optional: false,
@@ -149,6 +152,7 @@ export function builderSteps(
         !same(s.contact, d.contact) ||
         !same(s.hours, d.hours) ||
         s.capacity !== d.capacity ||
+        s.timeZone !== d.timeZone ||
         s.currency !== d.currency ||
         s.clock !== d.clock,
     },

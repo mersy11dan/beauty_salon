@@ -20,7 +20,7 @@ export function SocialRow({ socials, className }: { socials: Socials; className?
             target="_blank"
             rel="noreferrer noopener"
             aria-label={i.title}
-            className="group block rounded-full p-1 text-ink/70 transition-colors duration-300 hover:text-accent"
+            className="hit-area group block rounded-full p-1 text-ink/70 transition-colors duration-300 hover:text-accent"
           >
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden className="fill-current">
               <path d={i.path} />

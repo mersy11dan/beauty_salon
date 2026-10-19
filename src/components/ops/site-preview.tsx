@@ -15,9 +15,9 @@ export function SitePreview({ settings, theme, fonts }: { settings: Settings; th
       className="overflow-hidden rounded-xl border border-ops-line bg-bg text-ink"
     >
       <div className="flex flex-col items-center px-6 pb-4 pt-7 text-center">
-        {settings.logoDataUrl ? (
+        {settings.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={settings.logoDataUrl} alt="" className="h-8 w-auto" />
+          <img src={settings.logoUrl} alt="" className="h-8 w-auto" />
         ) : (
           <span className="font-script text-[length:calc(1.9rem*var(--script-scale))] leading-[1.1]">
             {settings.name || "Salon name"}

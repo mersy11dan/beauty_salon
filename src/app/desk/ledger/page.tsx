@@ -6,32 +6,20 @@ import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { PaymentForm } from "@/components/ops/payment-form";
 import { PaidBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { addDays, formatDateShort, fromISODate, isSameWeek, todayISO } from "@/lib/dates";
+import { formatDateShort, isSameWeek } from "@/lib/dates";
+import { METHOD_LABEL } from "@/lib/format";
+import { useOps } from "@/lib/ops-store";
 import { useMoney } from "@/lib/site-hooks";
-import { MAX_MONTHS, useSalonStore } from "@/lib/store";
-
-const METHOD_LABEL = { cash: "Cash", card: "Card", transfer: "Transfer" } as const;
+import { useSalonStore, useSalonToday } from "@/lib/store";
 
 export default function LedgerPage() {
   const ledgerOn = useSalonStore((s) => s.settings.modules.ledger);
-  const payments = useSalonStore((s) => s.payments);
-  const updatePayment = useSalonStore((s) => s.updatePayment);
-  const removePayment = useSalonStore((s) => s.removePayment);
+  const payments = useOps((s) => s.payments);
+  const updatePayment = useOps((s) => s.updatePayment);
+  const removePayment = useOps((s) => s.removePayment);
   const [adding, setAdding] = useState(false);
+  const today = useSalonToday();
   const formatMoney = useMoney();
-  const today = todayISO();
-  const mode = useSalonStore((s) => s.mode);
-  const months = useSalonStore((s) => s.months);
-  const loadMonths = useSalonStore((s) => s.loadMonths);
-  const [loadingOlder, setLoadingOlder] = useState(false);
-  const earliest = months.length ? months.slice().sort()[0] : null;
-
-  async function showOlder() {
-    if (!earliest) return;
-    setLoadingOlder(true);
-    await loadMonths([addDays(`${earliest}-01`, -1).slice(0, 7)]).catch(() => undefined);
-    setLoadingOlder(false);
-  }
 
   const totals = useMemo(() => {
     const paid = payments.filter((p) => p.status === "paid");
@@ -60,7 +48,7 @@ export default function LedgerPage() {
     <>
       <OpsTitle
         title="Payments"
-        intro="A simple record of what was paid and how. Nothing here charges a card; it is the book you would otherwise keep on paper."
+        intro="A simple record of what was paid and how: cash, telebirr, M-PESA or bank transfer. Nothing here moves money; it is the book you would otherwise keep on paper."
         action={
           !adding && (
             <Button size="sm" className="bg-ops-accent text-white hover:bg-black" onClick={() => setAdding(true)}>
@@ -109,7 +97,7 @@ export default function LedgerPage() {
                   <td className="px-5 py-3.5">
                     <button
                       type="button"
-                      onClick={() => updatePayment(p.id, { status: p.status === "paid" ? "unpaid" : "paid" })}
+                      onClick={() => void updatePayment(p.id, { status: p.status === "paid" ? "unpaid" : "paid" })}
                       title="Toggle paid / unpaid"
                       className="rounded-full focus-visible:outline-2"
                     >
@@ -121,7 +109,9 @@ export default function LedgerPage() {
                     <button
                       type="button"
                       aria-label="Delete payment"
-                      onClick={() => removePayment(p.id)}
+                      onClick={() => {
+                        if (window.confirm(`Delete “${p.label}” (${formatMoney(p.amount)})? This can't be undone.`)) void removePayment(p.id);
+                      }}
                       className="rounded-md p-1.5 text-ops-muted transition-colors hover:bg-ops-bg hover:text-[#9b2c2c]"
                     >
                       <Trash2 size={15} strokeWidth={1.75} />
@@ -133,21 +123,6 @@ export default function LedgerPage() {
           </table>
         )}
       </Card>
-
-      {mode === "live" && earliest && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-ops-muted">
-          <p>
-            Showing payments since{" "}
-            {fromISODate(`${earliest}-01`).toLocaleDateString("en", { month: "long", year: "numeric" })}. Totals count only
-            what is shown.
-          </p>
-          {months.length < MAX_MONTHS && (
-            <Button size="sm" variant="ghost" disabled={loadingOlder} onClick={showOlder}>
-              {loadingOlder ? "Loading…" : "Show the month before"}
-            </Button>
-          )}
-        </div>
-      )}
     </>
   );
 }

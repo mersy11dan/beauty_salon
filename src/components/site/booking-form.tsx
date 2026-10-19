@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Reveal } from "@/components/motion/reveal";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { fill, type Copy } from "@/lib/copy";
 import {
   formatDateLong,
@@ -16,13 +17,14 @@ import {
   hhmmOf,
   minutesOf,
   MONTHS_SHORT,
-  todayISO,
   WEEKDAY_SHORT,
 } from "@/lib/dates";
+import { checkPhone, formatPhone, parsePhone, phoneHint, telHref, type PhoneValue } from "@/lib/phone";
 import { useCopy, useMoney, useTime } from "@/lib/site-hooks";
-import { availableSlots, upcomingOpenDates } from "@/lib/slots";
-import { useCustomer, useSalonStore } from "@/lib/store";
+import { upcomingOpenDates } from "@/lib/slots";
+import { useCustomer, useSalonStore, useSalonToday } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
+import { checkName } from "@/lib/validation";
 import { Avatar } from "./home-sections";
 import { PageTitle } from "./section";
 import { groupByCategory } from "./service-list";
@@ -152,16 +154,46 @@ function SummaryRow({ label, value }: { label: string; value?: string | null | f
   );
 }
 
-type Errors = { name?: string; phone?: string; time?: string };
+type Errors = { name?: string; phone?: string; time?: string; form?: string };
 
-const phoneOk = (v: string) => v.replace(/\D/g, "").length >= 7;
+const phoneError = (v: PhoneValue) => {
+  const r = checkPhone(v);
+  return r.ok ? undefined : r.error;
+};
+
+type Availability = { key: string; slots: string[]; error?: string };
+
+/** Free start times from the server, which sees every booking without sending anyone's details. */
+function useAvailability(serviceId: string | undefined, staffId: string | null, date: string, nonce: number) {
+  const key = serviceId && date ? `${serviceId}|${staffId ?? ""}|${date}|${nonce}` : "";
+  const [result, setResult] = useState<Availability | null>(null);
+
+  useEffect(() => {
+    if (!key || !serviceId) return;
+    const ctrl = new AbortController();
+    const qs = new URLSearchParams({ serviceId, date, ...(staffId ? { staffId } : {}) });
+    fetch(`/api/availability?${qs}`, { signal: ctrl.signal, cache: "no-store" })
+      .then(async (res) => {
+        const json = (await res.json().catch(() => ({}))) as { slots?: string[]; reason?: string; error?: string };
+        if (!res.ok || !Array.isArray(json.slots)) throw new Error(json.error ?? "Free times couldn't be loaded.");
+        setResult({ key, slots: json.slots, error: json.reason });
+      })
+      .catch((err: unknown) => {
+        if (ctrl.signal.aborted) return;
+        setResult({ key, slots: [], error: err instanceof Error && err.message !== "Failed to fetch" ? err.message : "Free times couldn't be loaded. Check your connection." });
+      });
+    return () => ctrl.abort();
+  }, [key, serviceId, staffId, date]);
+
+  const current = result && result.key === key ? result : null;
+  return { slots: current?.slots ?? [], loading: !!key && !current, error: current?.error };
+}
 
 export function BookingForm() {
   const params = useSearchParams();
   const settings = useSalonStore((s) => s.settings);
   const services = useSalonStore((s) => s.services);
   const staff = useSalonStore((s) => s.staff);
-  const appointments = useSalonStore((s) => s.appointments);
   const createAppointment = useSalonStore((s) => s.createAppointment);
   const customer = useCustomer();
   const signOutCustomer = useSalonStore((s) => s.signOutCustomer);
@@ -177,11 +209,12 @@ export function BookingForm() {
   const [rawDate, setDate] = useState<string>("");
   const [rawTime, setTime] = useState<string>("");
   const [name, setName] = useState(customer?.name ?? "");
-  const [phone, setPhone] = useState(customer?.phone ?? "");
+  const [phone, setPhone] = useState<PhoneValue>(() => parsePhone(customer?.phone));
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [done, setDone] = useState<Appointment | null>(null);
   const [sending, setSending] = useState(false);
+  const [nonce, setNonce] = useState(0);
 
   const timeRef = useRef<HTMLFieldSetElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -207,26 +240,13 @@ export function BookingForm() {
   // Derived rather than synced: a stale choice simply falls back.
   const staffId = rawStaffId !== ANYONE && !eligibleStaff.some((m) => m.id === rawStaffId) ? ANYONE : rawStaffId;
 
-  const today = todayISO();
+  const today = useSalonToday();
   const dates = useMemo(() => upcomingOpenDates(settings.hours, today, 10), [settings.hours, today]);
-  const date = rawDate || dates[0] || "";
+  const date = rawDate && dates.includes(rawDate) ? rawDate : dates[0] || "";
+  const chosenStaffId = staffOn && staffId !== ANYONE ? staffId : null;
 
-  const slots = useMemo(() => {
-    if (!service || !date) return [];
-    const now = new Date();
-    const notBefore =
-      date === today ? hhmmOf(Math.ceil((now.getHours() * 60 + now.getMinutes()) / 30) * 30) : undefined;
-    return availableSlots({
-      date,
-      durationMin: service.durationMin,
-      hours: settings.hours,
-      appointments,
-      staffId: staffOn && staffId !== ANYONE ? staffId : null,
-      staffPool: staffOn ? eligibleStaff.map((m) => m.id) : [],
-      capacity: settings.capacity,
-      notBefore,
-    });
-  }, [service, date, today, settings.hours, settings.capacity, appointments, staffOn, staffId, eligibleStaff]);
+  const availability = useAvailability(service?.id, chosenStaffId, date, nonce);
+  const slots = availability.slots;
 
   const time = slots.includes(rawTime) ? rawTime : "";
 
@@ -256,49 +276,59 @@ export function BookingForm() {
     if (sending) return;
     const next: Errors = {};
     if (!time) next.time = copy.bookErrTime;
-    if (!name.trim()) next.name = copy.bookErrName;
-    if (!phoneOk(phone)) next.phone = copy.bookErrPhone;
+    next.name = checkName(name);
+    next.phone = phoneError(phone);
     setErrors(next);
     if (next.time) return focusInvalid(timeRef.current);
     if (next.name) return focusInvalid(nameRef.current);
     if (next.phone) return focusInvalid(phoneRef.current);
-    if (!service) return;
+    const checked = checkPhone(phone);
+    if (!service || !checked.ok) return;
 
     setSending(true);
-    const r = await createAppointment({
-      customerId: customer?.id,
+    const result = await createAppointment({
       guestName: name.trim(),
-      guestPhone: phone.trim(),
+      guestPhone: checked.e164,
       serviceId: service.id,
-      staffId: staffOn && staffId !== ANYONE ? staffId : null,
+      staffId: chosenStaffId,
       date,
       time,
-      durationMin: service.durationMin,
       note: note.trim() || undefined,
     });
     setSending(false);
-    if (r.ok) {
-      setDone(r.appointment);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!result.ok) {
+      if (result.field === "guestName") {
+        setErrors({ name: result.error });
+        return focusInvalid(nameRef.current);
+      }
+      if (result.field === "guestPhone") {
+        setErrors({ phone: result.error });
+        return focusInvalid(phoneRef.current);
+      }
+      if (result.field === "time") {
+        setTime("");
+        setNonce((n) => n + 1);
+        setErrors({ time: result.error });
+        return focusInvalid(timeRef.current);
+      }
+      setErrors({ form: result.error });
       return;
     }
-    // "auth" clears the guest, and the account gate around this form takes over.
-    if (r.error === "auth") return;
-    if (r.error === "taken") setTime("");
-    setErrors({ time: r.error === "taken" ? copy.bookTaken : fill(copy.bookFailed, { phone: settings.contact.phone }) });
-    focusInvalid(timeRef.current);
+    setDone(result.data);
+    setNonce((n) => n + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   if (done && service) {
     const who = staff.find((m) => m.id === done.staffId);
     const end = hhmmOf(minutesOf(done.time) + done.durationMin);
-    const tel = settings.contact.phone.replace(/[^+\d]/g, "");
+    const salonPhone = formatPhone(settings.contact.phone);
     return (
       <div ref={doneRef} tabIndex={-1} className="focus:outline-none">
         <PageTitle
           label={copy.doneLabel}
           title={fill(copy.doneTitle, { name: done.guestName.split(/\s+/)[0] })}
-          intro={copy.doneIntro ? fill(copy.doneIntro, { phone: done.guestPhone, salonPhone: settings.contact.phone }) : undefined}
+          intro={copy.doneIntro ? fill(copy.doneIntro, { phone: formatPhone(done.guestPhone), salonPhone }) : undefined}
         />
         <div className="mx-auto grid max-w-6xl gap-12 px-6 pb-20 md:pb-28 lg:grid-cols-12 lg:gap-16">
           <Reveal y={16} className="lg:col-span-7">
@@ -324,8 +354,8 @@ export function BookingForm() {
               <p className="text-[17px] leading-[1.5] text-ink">{settings.contact.address}</p>
               <p className="flex flex-col gap-1 text-[15.5px] text-muted">
                 {settings.contact.phone && (
-                  <a href={`tel:${tel}`} className="w-fit hover:text-ink">
-                    {settings.contact.phone}
+                  <a href={telHref(settings.contact.phone)} className="tabular w-fit hover:text-ink">
+                    {salonPhone}
                   </a>
                 )}
                 {settings.contact.email && (
@@ -339,7 +369,7 @@ export function BookingForm() {
                   href={settings.contact.mapUrl}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="group inline-flex w-fit items-center gap-2 text-[14px] font-medium text-ink"
+                  className="hit-area group inline-flex w-fit items-center gap-2 text-[14px] font-medium text-ink"
                 >
                   {copy.homeVisitMaps}
                   <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">
@@ -358,7 +388,7 @@ export function BookingForm() {
                   setDone(null);
                   setTime("");
                   setName(customer?.name ?? "");
-                  setPhone(customer?.phone ?? "");
+                  setPhone(parsePhone(customer?.phone));
                   setNote("");
                   setErrors({});
                   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -374,7 +404,7 @@ export function BookingForm() {
   }
 
   const total = staffOn ? 4 : 3;
-  const detailsDone = !!name.trim() && phoneOk(phone);
+  const detailsDone = !checkName(name) && !phoneError(phone);
   const end = service && time ? hhmmOf(minutesOf(time) + service.durationMin) : "";
   const staffName = staffId === ANYONE ? copy.bookAnyoneNote : staff.find((m) => m.id === staffId)?.name;
   const hint = !service
@@ -451,7 +481,7 @@ export function BookingForm() {
                       <span className="tabular hidden w-20 shrink-0 text-right text-[13.5px] leading-6 text-muted sm:block">
                         {formatDuration(s.durationMin)}
                       </span>
-                      <span className="tabular w-16 shrink-0 text-right text-[16px] leading-6 text-ink">
+                      <span className="tabular w-24 shrink-0 whitespace-nowrap text-right text-[16px] leading-6 text-ink">
                         {formatMoney(s.price)}
                       </span>
                     </Choice>
@@ -553,7 +583,7 @@ export function BookingForm() {
                     })}
                   </div>
                 ) : (
-                  <p className="text-[14.5px] text-muted">{fill(copy.bookNoDays, { phone: settings.contact.phone })}</p>
+                  <p className="text-[14.5px] text-muted">{fill(copy.bookNoDays, { phone: formatPhone(settings.contact.phone) })}</p>
                 )}
               </fieldset>
 
@@ -566,6 +596,20 @@ export function BookingForm() {
                 <legend className={clsx(LABEL, "mb-3 text-muted")}>{copy.bookTime}</legend>
                 {!service ? (
                   <p className="text-[14.5px] text-muted">{copy.bookPickServiceFirst}</p>
+                ) : availability.loading ? (
+                  <div aria-busy className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                    <span className="sr-only">Loading free times…</span>
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <span key={i} aria-hidden className="h-11 animate-pulse rounded-full bg-soft" />
+                    ))}
+                  </div>
+                ) : availability.error ? (
+                  <p className="text-[14.5px] text-muted">
+                    {availability.error}{" "}
+                    <button type="button" onClick={() => setNonce((n) => n + 1)} className="cursor-pointer font-medium text-accent hover:text-accent-hover">
+                      {copy.bookRetry}
+                    </button>
+                  </p>
                 ) : periods.length === 0 ? (
                   <p className="text-[14.5px] text-muted">
                     {fill(copy.bookNothingFree, { date: formatDateShort(date), service: service.name.toLowerCase() })}
@@ -620,7 +664,7 @@ export function BookingForm() {
                 {fill(copy.bookSignedIn, { email: customer.email })}{" "}
                 <button
                   type="button"
-                  onClick={signOutCustomer}
+                  onClick={() => void signOutCustomer()}
                   className="cursor-pointer font-medium text-accent hover:text-accent-hover"
                 >
                   {copy.bookSignOut}
@@ -639,25 +683,24 @@ export function BookingForm() {
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value);
-                    if (e.target.value.trim()) clearError("name");
+                    if (errors.name) setErrors((prev) => ({ ...prev, name: checkName(e.target.value) }));
                   }}
+                  onBlur={() => name.trim() && setErrors((prev) => ({ ...prev, name: checkName(name) }))}
                 />
               </Field>
-              <Field label={copy.bookPhone} htmlFor="phone" error={errors.phone} hint={copy.bookPhoneHint || undefined}>
-                <Input
-                  ref={phoneRef}
+              <Field label={copy.bookPhone} htmlFor="phone" error={errors.phone} hint={phoneHint(phone.country)}>
+                <PhoneInput
                   id="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
+                  inputRef={phoneRef}
                   required
-                  aria-invalid={!!errors.phone}
-                  aria-describedby={errors.phone ? "phone-error" : copy.bookPhoneHint ? "phone-hint" : undefined}
                   value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
-                    if (phoneOk(e.target.value)) clearError("phone");
+                  invalid={!!errors.phone}
+                  describedBy={errors.phone ? "phone-error" : "phone-hint"}
+                  onChange={(v) => {
+                    setPhone(v);
+                    if (errors.phone) setErrors((prev) => ({ ...prev, phone: phoneError(v) }));
                   }}
+                  onBlur={() => phone.number.trim() && setErrors((prev) => ({ ...prev, phone: phoneError(phone) }))}
                 />
               </Field>
               <Field label={copy.bookNote} htmlFor="note" className="sm:col-span-2">
@@ -693,6 +736,11 @@ export function BookingForm() {
               <Button type="submit" size="lg" className="mt-7 w-full" disabled={!service || sending} aria-busy={sending}>
                 {sending ? copy.bookSending : copy.bookSubmit}
               </Button>
+              {errors.form && (
+                <p role="alert" className="mt-3.5 text-center text-[13px] leading-[1.55] text-[#9b2c2c]">
+                  {errors.form}
+                </p>
+              )}
               <p aria-live="polite" className="mt-3.5 text-center text-[13px] leading-[1.55] text-muted">
                 {hint}
               </p>

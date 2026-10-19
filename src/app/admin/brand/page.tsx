@@ -23,7 +23,7 @@ export default function BrandPage() {
     <>
       <OpsTitle
         title="Name and logo"
-        intro="The client's name, logo, browser-tab icon and how the site shows up in Google. Changes apply immediately."
+        intro="The client's name, logo, browser-tab icon and how the site shows up in Google. Changes save as you go."
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
@@ -38,7 +38,7 @@ export default function BrandPage() {
                 <Input id="tagline" value={settings.tagline} onChange={(e) => update({ tagline: e.target.value })} />
               </Field>
               <Field label="Logo" htmlFor="logo" hint="Optional. Replaces the typed name in the header." className="sm:col-span-2">
-                <ImageInput id="logo" value={settings.logoDataUrl} onChange={(v) => update({ logoDataUrl: v })} aspect="aspect-[3/1]" />
+                <ImageInput id="logo" value={settings.logoUrl} onChange={(v) => update({ logoUrl: v })} aspect="aspect-[3/1]" />
               </Field>
               <Field
                 label="Browser-tab icon"
@@ -48,8 +48,8 @@ export default function BrandPage() {
               >
                 <ImageInput
                   id="favicon"
-                  value={settings.faviconDataUrl}
-                  onChange={(v) => update({ faviconDataUrl: v })}
+                  value={settings.faviconUrl}
+                  onChange={(v) => update({ faviconUrl: v })}
                   aspect="aspect-square"
                   maxSize={256}
                 />

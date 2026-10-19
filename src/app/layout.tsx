@@ -1,26 +1,24 @@
 import type { Metadata } from "next";
-import { SalonProvider } from "@/lib/hydration";
-import { getSiteState } from "@/server/site";
+import { connection } from "next/server";
+import { SalonProvider } from "@/lib/store";
+import { getPublicData } from "@/server/data/public";
+import { getInitialSnapshot } from "@/server/data/snapshot";
 import { fontVariables } from "./fonts";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { content } = await getSiteState();
-  if (!content) {
-    return {
-      title: { default: "Beauty Salon", template: "%s · Beauty Salon" },
-      description: "Nails, hair and makeup, by appointment.",
-    };
-  }
-  const s = content.settings;
-  const name = s.name || "Salon";
+  await connection();
+  const { settings: s } = await getPublicData();
+  const name = s.name || "Beauty Salon";
+  const title = s.seo.title.trim() || name;
+  const description = s.seo.description || s.tagline || "Nails, hair and makeup, by appointment.";
   return {
-    title: { default: s.seo.title.trim() || name, template: `%s · ${name}` },
-    description: s.seo.description || s.tagline || undefined,
-    icons: s.faviconDataUrl ? { icon: s.faviconDataUrl } : undefined,
+    title: { default: title, template: `%s · ${name}` },
+    description,
+    icons: s.faviconUrl ? { icon: s.faviconUrl } : undefined,
     openGraph: {
-      title: s.seo.title.trim() || name,
-      description: s.seo.description || s.tagline || undefined,
+      title,
+      description,
       siteName: name,
       images: s.hero.slides[0]?.src ? [{ url: s.hero.slides[0].src }] : undefined,
     },
@@ -28,13 +26,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { mode, content } = await getSiteState();
+  const initial = await getInitialSnapshot();
   return (
-    <html lang="en" className={`${fontVariables} h-full antialiased`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${fontVariables} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-ink">
-        <SalonProvider mode={mode} content={content}>
-          {children}
-        </SalonProvider>
+        <SalonProvider initial={initial}>{children}</SalonProvider>
       </body>
     </html>
   );

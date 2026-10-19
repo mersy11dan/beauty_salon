@@ -245,7 +245,7 @@ function Thumb({
             className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-0 bg-current transition-transform duration-700 ease-out-expo group-hover:scale-x-100 group-has-[:focus-visible]:scale-x-100"
           />
         </span>
-        <span className="text-faint transition-colors duration-500 group-hover:text-accent">{item.category}</span>
+        <span className="text-muted transition-colors duration-500 group-hover:text-accent">{item.category}</span>
       </figcaption>
     </figure>
   );

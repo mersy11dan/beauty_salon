@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { fill } from "@/lib/copy";
+import { formatPhone, telHref } from "@/lib/phone";
 import { useCopy } from "@/lib/site-hooks";
 import { useSettings } from "@/lib/store";
 import { SocialRow } from "./social-icons";
@@ -24,11 +25,11 @@ export function SiteFooter() {
         <div className="hairline-t flex flex-col items-center gap-3 py-7 text-center text-[12.5px] text-muted md:flex-row md:justify-between md:text-left">
           <p>{line}</p>
           <p className="flex items-center gap-5">
-            <a href={`tel:${settings.contact.phone.replace(/[^+\d]/g, "")}`} className="hover:text-ink">
-              {settings.contact.phone}
+            <a href={telHref(settings.contact.phone)} className="hit-area tabular hover:text-ink">
+              {formatPhone(settings.contact.phone)}
             </a>
             {copy.footerStaffLink && (
-              <Link href="/login" className="hover:text-ink">
+              <Link href="/login" className="hit-area hover:text-ink">
                 {copy.footerStaffLink}
               </Link>
             )}

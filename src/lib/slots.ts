@@ -1,13 +1,17 @@
 import { fromISODate, hhmmOf, minutesOf, toISODate, weekdayOf } from "./dates";
-import type { Appointment, Hours } from "./types";
+import type { Hours } from "./types";
 
 const STEP_MIN = 30;
+
+/** A booking that holds a chair, with no guest details. */
+export type BusyBlock = { time: string; durationMin: number; staffId: string | null };
 
 type SlotInput = {
   date: string;
   durationMin: number;
   hours: Hours;
-  appointments: Appointment[];
+  /** Non-cancelled bookings on `date`. */
+  busy: BusyBlock[];
   /** Chosen staff member, or null for "anyone". */
   staffId: string | null;
   /** All bookable staff ids (used when staffId is null and staff module is on). */
@@ -34,16 +38,12 @@ export function availableSlots(input: SlotInput): string[] {
   const close = minutesOf(day.close);
   const notBefore = input.notBefore ? minutesOf(input.notBefore) : -1;
 
-  const sameDay = input.appointments.filter(
-    (a) => a.date === input.date && a.status !== "cancelled",
-  );
-
   const slots: string[] = [];
   for (let start = open; start + input.durationMin <= close; start += STEP_MIN) {
     if (start <= notBefore) continue;
     const end = start + input.durationMin;
 
-    const busy = sameDay.filter((a) => {
+    const busy = input.busy.filter((a) => {
       const aStart = minutesOf(a.time);
       return overlaps(start, end, aStart, aStart + a.durationMin);
     });
@@ -52,7 +52,8 @@ export function availableSlots(input: SlotInput): string[] {
     if (input.staffId) {
       free = !busy.some((a) => a.staffId === input.staffId);
     } else if (input.staffPool.length > 0) {
-      const busyStaff = new Set(busy.map((a) => a.staffId).filter(Boolean));
+      // Someone who can't do this service being busy doesn't take a chair from those who can.
+      const busyStaff = new Set(busy.map((a) => a.staffId).filter((id) => id && input.staffPool.includes(id)));
       const unassigned = busy.filter((a) => !a.staffId).length;
       free = busyStaff.size + unassigned < input.staffPool.length;
     } else {

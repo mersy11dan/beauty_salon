@@ -1,29 +1,36 @@
-import "server-only";
+import { z } from "zod";
 
-export type DbConfig = { kind: "upstash"; url: string; token: string } | { kind: "file"; path: string };
+const schema = z.object({
+  DATABASE_URL: z
+    .string({ error: "DATABASE_URL is not set. Copy .env.example to .env.local and fill it in." })
+    .min(1, "DATABASE_URL is empty. Copy .env.example to .env.local and fill it in.")
+    .refine((v) => /^postgres(ql)?:\/\//.test(v), "DATABASE_URL must start with postgres:// or postgresql://"),
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(5),
+  CLOUDINARY_URL: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim() : undefined))
+    .refine((v) => !v || /^cloudinary:\/\/[^:]+:[^@]+@.+/.test(v), "CLOUDINARY_URL must look like cloudinary://API_KEY:API_SECRET@CLOUD_NAME"),
+  CLOUDINARY_FOLDER: z.string().default("salon"),
+  UPLOADS_DIR: z.string().default(".data/uploads"),
+  DEMO_MODE: z
+    .string()
+    .optional()
+    .transform((v) => v === "true" || v === "1"),
+});
 
-/**
- * A site is "live" once it has its own database. On Vercel that is an Upstash
- * Redis store added under Storage, which sets the KV_REST_API_* variables.
- * `SALON_LOCAL_DB` points at a JSON file instead, for trying live mode locally.
- * With neither, the site is the browser-only demo.
- */
-export function dbConfig(): DbConfig | null {
-  const env = process.env;
-  const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
-  const token = env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN;
-  if (url && token) return { kind: "upstash", url: url.replace(/\/+$/, ""), token };
-  if (env.SALON_LOCAL_DB) return { kind: "file", path: env.SALON_LOCAL_DB };
-  return null;
-}
+export type Env = z.infer<typeof schema>;
 
-export const isLive = () => dbConfig() !== null;
+let cached: Env | null = null;
 
-/** Lets several sites share one database without seeing each other's data. */
-export const dbPrefix = () => process.env.SALON_DB_PREFIX || "salon:";
-
-export function adminCredentials() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const password = process.env.ADMIN_PASSWORD;
-  return email && password ? { email, password } : null;
+/** Parsed on first use, not at import, so `next build` works without a database. */
+export function env(): Env {
+  if (cached) return cached;
+  const parsed = schema.safeParse(process.env);
+  if (!parsed.success) {
+    const lines = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n");
+    throw new Error(`Invalid server environment:\n${lines}`);
+  }
+  cached = parsed.data;
+  return cached;
 }

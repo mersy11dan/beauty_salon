@@ -1,40 +1,53 @@
 import { addDays, todayISO } from "./dates";
+import { DEMO_CUSTOMER } from "./demo";
 import { DEFAULT_FONTS } from "./fonts";
 import { DEFAULT_THEME } from "./palettes";
-import type { Hours, PortfolioItem, SalonData, Service } from "./types";
+import type { Appointment, Hours, Payment, PortfolioItem, PublicData, Service } from "./types";
 
-export const DEMO_ACCOUNTS = {
-  admin: { email: "admin@beautysalon.demo", password: "admin1234" },
-  staff: { email: "desk@beautysalon.demo", password: "desk1234" },
-};
+export const DEFAULT_TIME_ZONE = "Africa/Addis_Ababa";
 
-export const DEMO_CUSTOMER = { email: "maya.chen@example.com", password: "guest1234" };
-
+/** Long weekdays, a busy Saturday for weddings, and Sunday afternoons after church. */
 const hours: Hours = {
-  0: null,
-  1: { open: "09:00", close: "19:00" },
-  2: { open: "09:00", close: "19:00" },
-  3: { open: "09:00", close: "19:00" },
-  4: { open: "09:00", close: "20:00" },
-  5: { open: "09:00", close: "20:00" },
-  6: { open: "10:00", close: "18:00" },
+  0: { open: "11:00", close: "17:00" },
+  1: { open: "08:30", close: "19:30" },
+  2: { open: "08:30", close: "19:30" },
+  3: { open: "08:30", close: "19:30" },
+  4: { open: "08:30", close: "19:30" },
+  5: { open: "08:30", close: "19:30" },
+  6: { open: "08:00", close: "20:00" },
 };
 
+/** Prices in birr, pitched at a boutique salon in Bole (mid-2020s Addis rates). */
 const services: Service[] = [
-  { id: "svc_manicure", name: "Classic manicure", category: "Nails", durationMin: 45, price: 35 },
-  { id: "svc_gel", name: "Gel manicure", category: "Nails", durationMin: 60, price: 55, note: "Lasts up to three weeks" },
-  { id: "svc_pedicure", name: "Pedicure", category: "Nails", durationMin: 60, price: 50 },
-  { id: "svc_nailart", name: "Nail art", category: "Nails", durationMin: 20, price: 15, note: "Added to any manicure" },
-  { id: "svc_cut", name: "Cut and blow-dry", category: "Hair", durationMin: 60, price: 70 },
-  { id: "svc_mencut", name: "Short cut", category: "Hair", durationMin: 30, price: 35 },
-  { id: "svc_colour", name: "Full-head colour", category: "Hair", durationMin: 120, price: 140 },
-  { id: "svc_balayage", name: "Balayage", category: "Hair", durationMin: 180, price: 220, note: "Includes toner and blow-dry" },
-  { id: "svc_blowdry", name: "Blow-dry", category: "Hair", durationMin: 45, price: 45 },
-  { id: "svc_daymakeup", name: "Day makeup", category: "Makeup", durationMin: 45, price: 65 },
-  { id: "svc_eveningmakeup", name: "Evening makeup", category: "Makeup", durationMin: 60, price: 90 },
-  { id: "svc_bridal", name: "Bridal trial", category: "Makeup", durationMin: 90, price: 150 },
-  { id: "svc_brows", name: "Brow shape and tint", category: "Makeup", durationMin: 30, price: 30 },
+  { id: "svc_manicure", name: "Classic manicure", category: "Nails", durationMin: 45, price: 600 },
+  { id: "svc_gel", name: "Gel manicure", category: "Nails", durationMin: 60, price: 1200, note: "Lasts up to three weeks" },
+  { id: "svc_pedicure", name: "Pedicure", category: "Nails", durationMin: 60, price: 1000, note: "With a scrub and a short foot massage" },
+  { id: "svc_nailart", name: "Nail art", category: "Nails", durationMin: 20, price: 300, note: "Added to any manicure" },
+  { id: "svc_cut", name: "Cut and blow-dry", category: "Hair", durationMin: 60, price: 1200 },
+  { id: "svc_blowdry", name: "Wash and blow-dry", category: "Hair", durationMin: 45, price: 700 },
+  { id: "svc_shuruba", name: "Shuruba", category: "Hair", durationMin: 120, price: 1500, note: "Traditional cornrows, albaso included. Extensions priced on the day" },
+  { id: "svc_mencut", name: "Short cut", category: "Hair", durationMin: 30, price: 500 },
+  { id: "svc_colour", name: "Full-head colour", category: "Hair", durationMin: 120, price: 4500 },
+  { id: "svc_balayage", name: "Balayage", category: "Hair", durationMin: 180, price: 8500, note: "Includes toner and blow-dry" },
+  { id: "svc_daymakeup", name: "Day makeup", category: "Makeup", durationMin: 45, price: 2000 },
+  { id: "svc_eveningmakeup", name: "Evening makeup", category: "Makeup", durationMin: 60, price: 3500, note: "Weddings, graduations, holidays" },
+  { id: "svc_bridal", name: "Bridal trial", category: "Makeup", durationMin: 90, price: 2500, note: "We plan the wedding and melse looks together" },
+  { id: "svc_bridalday", name: "Bridal makeup, wedding day", category: "Makeup", durationMin: 180, price: 15000, note: "Lashes and a touch-up kit for the day" },
+  { id: "svc_brows", name: "Brow threading and tint", category: "Makeup", durationMin: 30, price: 500 },
 ];
+
+const HERO_PARAGRAPH =
+  "A small salon in Bole for nails, hair and makeup. Pick a time that suits you, and pay when you are here.";
+
+const ABOUT_BODY =
+  "We opened because we wanted a salon where you are not passed between people. The person who greets you does your nails, or your hair, or your face, start to finish. Bring a reference photo, or bring nothing and tell us about your week over a cup of buna.";
+
+const CONTACT = {
+  phone: "+251911508080",
+  email: "hello@beautysalon.demo",
+  address: "Bole Road, near Edna Mall, 2nd floor, Addis Ababa",
+  mapUrl: "https://maps.google.com/?q=Edna+Mall,+Bole,+Addis+Ababa",
+};
 
 function portfolioSet(category: string, folder: string, items: [caption: string, alt: string][]): PortfolioItem[] {
   return items.map(([caption, alt], i) => ({
@@ -54,18 +67,17 @@ function interleave<T>(lists: T[][]): T[] {
   return out;
 }
 
-export function createSeed(): SalonData {
+/** The sample salon: settings and everything shown on the public site. */
+export function createSeedContent(): PublicData {
   const today = todayISO();
-  const tomorrow = addDays(today, 1);
-  const yesterday = addDays(today, -1);
-  const now = new Date().toISOString();
 
   return {
     settings: {
       name: "Beauty Salon",
       tagline: "Nails, hair and makeup, by appointment",
-      logoDataUrl: null,
-      faviconDataUrl: null,
+      logoUrl: null,
+      faviconUrl: null,
+      timeZone: DEFAULT_TIME_ZONE,
       theme: { ...DEFAULT_THEME },
       fonts: { ...DEFAULT_FONTS },
       copy: {},
@@ -73,7 +85,7 @@ export function createSeed(): SalonData {
         title: "",
         description: "Nails, hair and makeup, by appointment.",
       },
-      currency: "USD",
+      currency: "ETB",
       clock: "12h",
       demoHints: true,
       checklist: {},
@@ -88,8 +100,7 @@ export function createSeed(): SalonData {
       },
       hero: {
         headline: "Come in as you are. Leave finished.",
-        paragraph:
-          "A small salon for nails, hair and makeup. Pick a time that suits you, and pay when you are here.",
+        paragraph: HERO_PARAGRAPH,
         slides: [
           { id: "slide_nails", label: "Nails", src: "/media/hero/nails.webp", alt: "A hand with almond-shaped nude gel nails resting on a knitted sleeve" },
           { id: "slide_hair", label: "Hair", src: "/media/hero/hair.webp", alt: "Long brown hair being shaped around a round brush" },
@@ -98,16 +109,10 @@ export function createSeed(): SalonData {
       },
       about: {
         heading: "Three chairs, one small room, no rush.",
-        body:
-          "We opened because we wanted a salon where you are not passed between people. The person who greets you does your nails, or your hair, or your face, start to finish. Bring a reference photo, or bring nothing and tell us about your week.",
+        body: ABOUT_BODY,
         photos: [],
       },
-      contact: {
-        phone: "+1 (555) 014-2200",
-        email: "hello@beautysalon.demo",
-        address: "14 Linden Row, Second floor",
-        mapUrl: "https://maps.google.com/?q=14+Linden+Row",
-      },
+      contact: CONTACT,
       hours,
       capacity: 3,
       socials: {
@@ -120,28 +125,28 @@ export function createSeed(): SalonData {
     services,
     staff: [
       {
-        id: "stf_amara",
-        name: "Amara Osei",
+        id: "stf_hiwot",
+        name: "Hiwot Tesfaye",
         role: "Nail artist",
-        bio: "Twelve years on nails. Known for clean cuticle work and natural shapes that last.",
+        bio: "Twelve years on nails, trained in Addis and Dubai. Known for clean cuticle work and natural shapes that last.",
         photo: null,
         serviceIds: ["svc_manicure", "svc_gel", "svc_pedicure", "svc_nailart"],
       },
       {
-        id: "stf_lena",
-        name: "Lena Novak",
+        id: "stf_meron",
+        name: "Meron Alemu",
         role: "Stylist and colourist",
-        bio: "Trained in Prague and Milan. Soft, lived-in colour and cuts that grow out well.",
+        bio: "Silk presses, shuruba and soft, lived-in colour that grows out well. Ask her about albaso before a holiday.",
         photo: null,
-        serviceIds: ["svc_cut", "svc_mencut", "svc_colour", "svc_balayage", "svc_blowdry"],
+        serviceIds: ["svc_cut", "svc_blowdry", "svc_shuruba", "svc_mencut", "svc_colour", "svc_balayage"],
       },
       {
-        id: "stf_yara",
-        name: "Yara Haddad",
+        id: "stf_selam",
+        name: "Selamawit Bekele",
         role: "Makeup artist",
-        bio: "Editorial and bridal. Skin first, then colour. Brings her own kit for trials.",
+        bio: "Bridal and melse looks, graduations and shoots. Skin first, then colour. Brings her own kit for trials.",
         photo: null,
-        serviceIds: ["svc_daymakeup", "svc_eveningmakeup", "svc_bridal", "svc_brows"],
+        serviceIds: ["svc_daymakeup", "svc_eveningmakeup", "svc_bridal", "svc_bridalday", "svc_brows"],
       },
     ],
     portfolio: interleave([
@@ -180,32 +185,43 @@ export function createSeed(): SalonData {
       ]),
     ]),
     reviews: [
-      { id: "rv_1", author: "Priya S.", rating: 5, date: addDays(today, -6), text: "Amara shaped my nails exactly the way I had in my head and could not describe. Three weeks later, no lifting." },
-      { id: "rv_2", author: "Daniel K.", rating: 5, date: addDays(today, -12), text: "Walked in for a short cut on a Thursday evening. In and out in half an hour, and it still looks sharp." },
-      { id: "rv_3", author: "Hana M.", rating: 4, date: addDays(today, -20), text: "Bridal trial with Yara was calm and unhurried. She wrote down every product so I could buy the lipstick." },
-      { id: "rv_4", author: "Teodora V.", rating: 5, date: addDays(today, -31), text: "Lena talked me out of going too light and she was right. Best colour I have had." },
+      { id: "rv_1", author: "Bethlehem A.", rating: 5, date: addDays(today, -6), text: "Hiwot shaped my nails exactly the way I had in my head and could not describe. Three weeks later, no lifting." },
+      { id: "rv_2", author: "Dawit G.", rating: 5, date: addDays(today, -12), text: "Walked in for a short cut on a Thursday evening. In and out in half an hour, and it still looks sharp." },
+      { id: "rv_3", author: "Hanna M.", rating: 4, date: addDays(today, -20), text: "Bridal trial with Selam was calm and unhurried. She planned my wedding and melse looks together and wrote down every product." },
+      { id: "rv_4", author: "Tsion K.", rating: 5, date: addDays(today, -31), text: "Meron talked me out of going too light and she was right. Best colour I have had." },
+      { id: "rv_5", author: "Rahel W.", rating: 5, date: addDays(today, -44), text: "Shuruba for Timket, done in under two hours and still neat a week later. They made buna while I waited." },
     ],
     offers: [
-      { id: "of_1", title: "Gel manicure and pedicure together", detail: "Book both in one visit and save $15.", until: addDays(today, 21), active: true },
-      { id: "of_2", title: "First visit, 10% off", detail: "For any service on your first appointment. Mention it at the desk.", until: addDays(today, 60), active: true },
+      { id: "of_1", title: "Gel manicure and pedicure together", detail: "Book both in one visit and save 300 Br.", until: addDays(today, 21), active: true },
+      { id: "of_2", title: "Wedding season", detail: "Book the bridal trial and the wedding-day makeup together and get 15% off both.", until: addDays(today, 60), active: true },
+      { id: "of_3", title: "First visit, 10% off", detail: "For any service on your first appointment. Mention it at the desk.", until: addDays(today, 90), active: true },
     ],
+  };
+}
+
+/** Sample bookings and payments around today, for the demo desk. */
+export function createDemoOps(customerId: string): { appointments: Appointment[]; payments: Payment[] } {
+  const today = todayISO();
+  const tomorrow = addDays(today, 1);
+  const yesterday = addDays(today, -1);
+  const now = new Date().toISOString();
+
+  return {
     appointments: [
-      { id: "apt_1", customerId: "cus_maya", guestName: "Maya Chen", guestPhone: "+1 555 010 3301", serviceId: "svc_gel", staffId: "stf_amara", date: today, time: "10:00", durationMin: 60, status: "confirmed", createdAt: now },
-      { id: "apt_2", guestName: "Ruth Adeyemi", guestPhone: "+1 555 010 4419", serviceId: "svc_cut", staffId: "stf_lena", date: today, time: "11:30", durationMin: 60, status: "confirmed", createdAt: now },
-      { id: "apt_3", guestName: "Sofia Marin", guestPhone: "+1 555 010 7782", serviceId: "svc_daymakeup", staffId: "stf_yara", date: today, time: "14:00", durationMin: 45, status: "requested", note: "Wedding guest, soft look", createdAt: now },
-      { id: "apt_4", guestName: "Jonas Berg", guestPhone: "+1 555 010 9023", serviceId: "svc_mencut", staffId: "stf_lena", date: today, time: "16:00", durationMin: 30, status: "requested", createdAt: now },
-      { id: "apt_5", guestName: "Elif Kaya", guestPhone: "+1 555 010 2217", serviceId: "svc_balayage", staffId: "stf_lena", date: tomorrow, time: "09:30", durationMin: 180, status: "confirmed", createdAt: now },
-      { id: "apt_6", guestName: "Grace Oduya", guestPhone: "+1 555 010 6650", serviceId: "svc_pedicure", staffId: "stf_amara", date: tomorrow, time: "13:00", durationMin: 60, status: "requested", createdAt: now },
-      { id: "apt_7", guestName: "Noor Rahman", guestPhone: "+1 555 010 8804", serviceId: "svc_brows", staffId: "stf_yara", date: yesterday, time: "12:00", durationMin: 30, status: "completed", createdAt: now },
-      { id: "apt_8", guestName: "Ivan Petrov", guestPhone: "+1 555 010 1176", serviceId: "svc_blowdry", staffId: "stf_lena", date: yesterday, time: "17:00", durationMin: 45, status: "cancelled", createdAt: now },
+      { id: "apt_1", customerId, guestName: DEMO_CUSTOMER.name, guestPhone: DEMO_CUSTOMER.phone, serviceId: "svc_gel", staffId: "stf_hiwot", date: today, time: "10:00", durationMin: 60, status: "confirmed", createdAt: now },
+      { id: "apt_2", guestName: "Ruth Haile", guestPhone: "+251912456789", serviceId: "svc_cut", staffId: "stf_meron", date: today, time: "11:30", durationMin: 60, status: "confirmed", createdAt: now },
+      { id: "apt_3", guestName: "Sara Getachew", guestPhone: "+251923118540", serviceId: "svc_daymakeup", staffId: "stf_selam", date: today, time: "14:00", durationMin: 45, status: "requested", note: "Wedding guest, soft look", createdAt: now },
+      { id: "apt_4", guestName: "Yonas Mekonnen", guestPhone: "+251700345612", serviceId: "svc_mencut", staffId: "stf_meron", date: today, time: "16:00", durationMin: 30, status: "requested", createdAt: now },
+      { id: "apt_5", guestName: "Eden Wolde", guestPhone: "+251944870231", serviceId: "svc_balayage", staffId: "stf_meron", date: tomorrow, time: "09:30", durationMin: 180, status: "confirmed", createdAt: now },
+      { id: "apt_6", guestName: "Kidist Abera", guestPhone: "+251913667205", serviceId: "svc_pedicure", staffId: "stf_hiwot", date: tomorrow, time: "13:00", durationMin: 60, status: "requested", createdAt: now },
+      { id: "apt_7", guestName: "Meklit Assefa", guestPhone: "+251710998234", serviceId: "svc_shuruba", staffId: "stf_meron", date: tomorrow, time: "15:00", durationMin: 120, status: "requested", note: "Albaso for a wedding on Sunday", createdAt: now },
+      { id: "apt_8", guestName: "Saron Desta", guestPhone: "+251930552418", serviceId: "svc_brows", staffId: "stf_selam", date: yesterday, time: "12:00", durationMin: 30, status: "completed", createdAt: now },
+      { id: "apt_9", guestName: "Lidya Tadesse", guestPhone: "+251921776043", serviceId: "svc_blowdry", staffId: "stf_meron", date: yesterday, time: "17:00", durationMin: 45, status: "cancelled", createdAt: now },
     ],
     payments: [
-      { id: "pay_1", amount: 30, method: "card", status: "paid", appointmentId: "apt_7", label: "Brow shape and tint · Noor Rahman", date: yesterday, createdAt: now },
-      { id: "pay_2", amount: 55, method: "cash", status: "paid", appointmentId: null, label: "Gel manicure · walk-in", date: yesterday, createdAt: now },
-      { id: "pay_3", amount: 140, method: "transfer", status: "unpaid", appointmentId: null, label: "Full-head colour · deposit pending", date: today, createdAt: now },
-    ],
-    customers: [
-      { id: "cus_maya", name: "Maya Chen", phone: "+1 555 010 3301", ...DEMO_CUSTOMER, createdAt: now },
+      { id: "pay_1", amount: 500, method: "telebirr", status: "paid", appointmentId: "apt_8", label: "Brow threading and tint · Saron Desta", date: yesterday, createdAt: now },
+      { id: "pay_2", amount: 1200, method: "cash", status: "paid", appointmentId: null, label: "Gel manicure · walk-in", date: today, createdAt: now },
+      { id: "pay_3", amount: 4500, method: "transfer", status: "unpaid", appointmentId: null, label: "Full-head colour · deposit pending", date: today, createdAt: now },
     ],
   };
 }

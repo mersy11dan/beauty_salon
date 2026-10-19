@@ -31,7 +31,7 @@ export function ServiceRows({
             <span className="tabular w-20 shrink-0 text-right text-[13.5px] text-muted">
               {formatDuration(s.durationMin)}
             </span>
-            <span className="tabular w-20 shrink-0 text-right text-[16px] text-ink">{formatMoney(s.price)}</span>
+            <span className="tabular w-24 shrink-0 whitespace-nowrap text-right text-[16px] text-ink">{formatMoney(s.price)}</span>
           </>
         );
         const cls = clsx(

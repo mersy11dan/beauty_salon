@@ -49,9 +49,11 @@ export type HeroSlide = {
 export type Settings = {
   name: string;
   tagline: string;
-  logoDataUrl: string | null;
+  logoUrl: string | null;
   /** Browser tab icon. Falls back to the default icon when empty. */
-  faviconDataUrl: string | null;
+  faviconUrl: string | null;
+  /** IANA zone, e.g. "Africa/Addis_Ababa". Booking times and "today" are read in this zone. */
+  timeZone: string;
   theme: Theme;
   fonts: FontChoice;
   modules: Modules;
@@ -158,7 +160,7 @@ export type Appointment = {
   createdAt: string;
 };
 
-export type PaymentMethod = "cash" | "card" | "transfer";
+export type PaymentMethod = "cash" | "telebirr" | "mpesa" | "transfer" | "card";
 export type PaymentStatus = "paid" | "unpaid";
 
 export type Payment = {
@@ -174,7 +176,7 @@ export type Payment = {
 
 export type Role = "admin" | "staff";
 
-export type Session = { role: Role; email: string } | null;
+export type Session = { id: string; role: Role; email: string; name: string } | null;
 
 /** A guest's own account on the public site. Separate from staff and admin logins. */
 export type Customer = {
@@ -182,24 +184,45 @@ export type Customer = {
   name: string;
   email: string;
   phone: string;
-  password: string;
   createdAt: string;
 };
 
-export type SalonData = {
+/** A desk or admin login, as the admin sees it on the Access page. */
+export type StaffAccount = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  createdAt: string;
+};
+
+/** Everything the public site shows. Safe to send to any visitor. */
+export type PublicData = {
   settings: Settings;
   services: Service[];
   staff: StaffMember[];
   portfolio: PortfolioItem[];
   reviews: Review[];
   offers: Offer[];
+};
+
+/** Bookings and money. Only ever sent to signed-in staff. */
+export type OpsData = {
   appointments: Appointment[];
   payments: Payment[];
-  customers: Customer[];
 };
 
 /** Everything that makes up one salon's website, without bookings, payments or accounts. */
-export type SiteContent = Pick<SalonData, "settings" | "services" | "staff" | "portfolio" | "reviews" | "offers">;
+export type SiteContent = PublicData;
 
-/** "demo" keeps everything in this browser; "live" reads and writes this site's own database. */
-export type DataMode = "demo" | "live";
+/** The content lists that can be reordered and edited one item at a time. */
+export type ContentList = Exclude<keyof SiteContent, "settings">;
+
+/** OpsData plus the first day it fully covers. Earlier days are fetched one at a time. */
+export type OpsSnapshot = OpsData & { since: string };
+
+export type SalonData = PublicData & OpsData;
+
+export type ActionResult<T = null> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; field?: string };
