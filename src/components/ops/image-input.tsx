@@ -5,31 +5,48 @@ import { Button } from "@/components/ui/button";
 
 const MAX_EDGE = 2400;
 const QUALITY = 0.86;
+/** Vercel refuses request bodies over 4.5 MB. Safari can't encode WebP, so a large PNG can land above it. */
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MIN_EDGE = 640;
 
 function toBlob(canvas: HTMLCanvasElement, type: string) {
   return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, QUALITY));
 }
 
-/**
- * Downsizes on a canvas and re-encodes as WebP (JPEG or PNG where WebP encoding isn't supported).
- * Re-encoding also drops EXIF data, so a phone photo never publishes where it was taken.
- */
-async function prepare(file: File, maxEdge = MAX_EDGE): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+async function encode(bitmap: ImageBitmap, edge: number, keepAlpha: boolean): Promise<Blob> {
+  const scale = Math.min(1, edge / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(bitmap.width * scale));
   canvas.height = Math.max(1, Math.round(bitmap.height * scale));
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas unavailable");
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
   const webp = await toBlob(canvas, "image/webp");
   if (webp?.type === "image/webp") return webp;
-  const keepAlpha = file.type === "image/png" || file.type === "image/gif" || file.type === "image/webp";
   const fallback = await toBlob(canvas, keepAlpha ? "image/png" : "image/jpeg");
   if (!fallback) throw new Error("Could not encode image");
   return fallback;
+}
+
+/**
+ * Downsizes on a canvas and re-encodes as WebP (JPEG or PNG where WebP encoding isn't supported),
+ * shrinking further until the file fits in one upload. Re-encoding also drops EXIF data, so a phone
+ * photo never publishes where it was taken.
+ */
+async function prepare(file: File, maxEdge = MAX_EDGE): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const keepAlpha = file.type === "image/png" || file.type === "image/gif" || file.type === "image/webp";
+  try {
+    let edge = Math.min(maxEdge, Math.max(bitmap.width, bitmap.height));
+    let blob = await encode(bitmap, edge, keepAlpha);
+    while (blob.size > MAX_UPLOAD_BYTES && edge > MIN_EDGE) {
+      edge = Math.max(MIN_EDGE, Math.round(edge * 0.75));
+      blob = await encode(bitmap, edge, keepAlpha);
+    }
+    return blob;
+  } finally {
+    bitmap.close();
+  }
 }
 
 /** Sends a photo to /api/uploads and returns its public URL. Throws a readable message on failure. */
