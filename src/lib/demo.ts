@@ -5,8 +5,8 @@ export const DEMO_ACCOUNTS = {
 };
 
 export const DEMO_CUSTOMER = {
-  email: "maya.chen@example.com",
+  email: "mahlet.girma@example.com",
   password: "guest1234",
-  name: "Maya Chen",
-  phone: "+1 555 010 3301",
+  name: "Mahlet Girma",
+  phone: "+251911223344",
 };

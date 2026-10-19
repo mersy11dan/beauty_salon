@@ -42,5 +42,4 @@ export async function burnPasswordCheck(password: string) {
   await verifyPassword(password, await dummy);
 }
 
-export const PASSWORD_MIN = 8;
-export const PASSWORD_MAX = 200;
+export { PASSWORD_MAX, PASSWORD_MIN } from "@/lib/validation";

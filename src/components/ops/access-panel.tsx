@@ -8,11 +8,11 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { call } from "@/lib/call";
 import { useSalonStore } from "@/lib/store";
 import type { Role, Session, StaffAccount } from "@/lib/types";
+import { checkEmail, checkNewPassword, PASSWORD_MIN } from "@/lib/validation";
 import { createStaffAccount, deleteStaffAccount, updateStaffAccount } from "@/server/actions/accounts";
 import { changeOwnPassword } from "@/server/actions/auth";
 import { Card, OpsTitle } from "./ops-shell";
 
-const MIN = 8;
 const ROLE_LABEL: Record<Role, string> = { admin: "Admin", staff: "Desk" };
 const PRIMARY = "bg-ops-accent text-white hover:bg-black";
 
@@ -160,8 +160,10 @@ function AccountForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!draft.name.trim()) return setError({ text: "Add a name so you can tell logins apart.", field: "name" });
-    if (!editing && draft.password.length < MIN) return setError({ text: `Use at least ${MIN} characters.`, field: "password" });
-    if (editing && draft.password && draft.password.length < MIN) return setError({ text: `Use at least ${MIN} characters.`, field: "password" });
+    const emailError = checkEmail(draft.email);
+    if (emailError) return setError({ text: emailError, field: "email" });
+    const passwordError = editing && !draft.password ? undefined : checkNewPassword(draft.password);
+    if (passwordError) return setError({ text: passwordError, field: "password" });
     setBusy(true);
     setError(null);
     const result = await call(() =>
@@ -183,7 +185,7 @@ function AccountForm({
         <Input id={id("name")} autoComplete="off" value={draft.name} onChange={(e) => set({ name: e.target.value })} />
       </Field>
       <Field label="Email" htmlFor={id("email")} error={errorFor("email")}>
-        <Input id={id("email")} type="email" autoComplete="off" value={draft.email} onChange={(e) => set({ email: e.target.value })} />
+        <Input id={id("email")} type="email" autoComplete="off" autoCapitalize="none" spellCheck={false} value={draft.email} onChange={(e) => set({ email: e.target.value })} />
       </Field>
       <Field label="Access" htmlFor={id("role")} error={errorFor("role")} hint={isSelf ? "You can't remove your own admin access." : undefined}>
         <Select id={id("role")} value={draft.role} disabled={isSelf} onChange={(e) => set({ role: e.target.value as Role })}>
@@ -195,7 +197,7 @@ function AccountForm({
         label={editing ? "New password" : "Password"}
         htmlFor={id("password")}
         error={errorFor("password")}
-        hint={editing ? "Leave blank to keep the current one. A new password signs them out everywhere." : `At least ${MIN} characters. Share it with them in person.`}
+        hint={editing ? "Leave blank to keep the current one. A new password signs them out everywhere." : `At least ${PASSWORD_MIN} characters. Share it with them in person.`}
       >
         <Input id={id("password")} type="text" autoComplete="new-password" value={draft.password} onChange={(e) => set({ password: e.target.value })} />
       </Field>
@@ -227,7 +229,8 @@ function OwnPassword({ me }: { me: NonNullable<Session> }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setDone(false);
-    if (next.length < MIN) return setError({ text: `Use at least ${MIN} characters.`, field: "next" });
+    const nextError = checkNewPassword(next);
+    if (nextError) return setError({ text: nextError, field: "next" });
     if (next !== confirm) return setError({ text: "The two new passwords don't match.", field: "confirm" });
     setBusy(true);
     setError(null);
@@ -250,7 +253,7 @@ function OwnPassword({ me }: { me: NonNullable<Session> }) {
         <Field label="Current password" htmlFor="pw-current" error={errorFor("current")}>
           <Input id="pw-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
         </Field>
-        <Field label="New password" htmlFor="pw-next" error={errorFor("next")} hint={`At least ${MIN} characters.`}>
+        <Field label="New password" htmlFor="pw-next" error={errorFor("next")} hint={`At least ${PASSWORD_MIN} characters.`}>
           <Input id="pw-next" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
         </Field>
         <Field label="New password again" htmlFor="pw-confirm" error={errorFor("confirm")}>

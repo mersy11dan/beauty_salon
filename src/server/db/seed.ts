@@ -75,7 +75,7 @@ export async function seedDemo(db: Db | Tx) {
   const passwordHash = await hashPassword(DEMO_CUSTOMER.password);
   const [guest] = await db
     .insert(customers)
-    .values({ id: "cus_maya", name: DEMO_CUSTOMER.name, email: DEMO_CUSTOMER.email, phone: DEMO_CUSTOMER.phone, passwordHash })
+    .values({ id: "cus_mahlet", name: DEMO_CUSTOMER.name, email: DEMO_CUSTOMER.email, phone: DEMO_CUSTOMER.phone, passwordHash })
     .onConflictDoUpdate({ target: customers.email, set: { passwordHash } })
     .returning({ id: customers.id });
 

@@ -38,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const initial = await getInitialSnapshot();
   return (
-    <html lang="en" className={`${bodoni.variable} ${manrope.variable} ${pinyon.variable} h-full antialiased`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${bodoni.variable} ${manrope.variable} ${pinyon.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-ink">
         <SalonProvider initial={initial}>{children}</SalonProvider>
       </body>

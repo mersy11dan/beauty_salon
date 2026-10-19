@@ -45,8 +45,40 @@ export function SiteHeader() {
   const settings = useSettings();
   const pathname = usePathname();
   const sentinel = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
+  const [more, setMore] = useState({ before: false, after: false });
   const items = navFor(settings.modules);
+
+  // On narrow screens the links scroll sideways: keep the current page in view
+  // and fade whichever edge has more links past it.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const active = el.querySelector<HTMLElement>("[aria-current=page]");
+    if (active && el.scrollWidth > el.clientWidth) {
+      const target = active.offsetLeft - (el.clientWidth - active.offsetWidth) / 2;
+      el.scrollTo({ left: Math.max(0, target), behavior: "instant" });
+    }
+    const measure = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      setMore({ before: el.scrollLeft > 2, after: el.scrollLeft < max - 2 });
+    };
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", measure);
+      ro.disconnect();
+    };
+  }, [pathname]);
+
+  const fade = 28;
+  const mask =
+    more.before || more.after
+      ? `linear-gradient(to right, ${more.before ? "transparent" : "#000"} 0, #000 ${more.before ? fade : 0}px, #000 calc(100% - ${more.after ? fade : 0}px), ${more.after ? "transparent" : "#000"} 100%)`
+      : undefined;
 
   useEffect(() => {
     const el = sentinel.current;
@@ -97,7 +129,11 @@ export function SiteHeader() {
             <Wordmark name={settings.name} logo={settings.logoUrl} size="sm" />
           </Link>
 
-          <div className="no-scrollbar w-full overflow-x-auto">
+          <div
+            ref={scroller}
+            className="no-scrollbar w-full overflow-x-auto"
+            style={{ maskImage: mask, WebkitMaskImage: mask }}
+          >
             <ul className="mx-auto flex w-max items-center gap-7 px-1 md:gap-9">
               {items.map((item) => {
                 const active =
@@ -107,6 +143,7 @@ export function SiteHeader() {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      aria-current={active ? "page" : undefined}
                       className={clsx(
                         "relative block py-3 text-[14px] tracking-[0.01em] transition-colors duration-300",
                         active ? "text-ink" : "text-ink/70 hover:text-ink",

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { addDays, formatDateLong, formatDateShort, formatTime, hhmmOf, minutesOf } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { useOps } from "@/lib/ops-store";
+import { formatPhone, telHref } from "@/lib/phone";
 import { useSalonStore, useSalonToday } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
 
@@ -112,9 +113,11 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
   return (
     <li className={clsx("px-5 py-4", faded && "opacity-60")}>
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-6">
-        <div className="tabular w-32 shrink-0 text-[14px] text-ops-ink">
+        <div className="tabular w-40 shrink-0 text-[14px] text-ops-ink">
           {showDate && <div className="text-[12.5px] text-ops-muted">{formatDateShort(apt.date)}</div>}
-          {formatTime(apt.time)} – {formatTime(end)}
+          <span className="whitespace-nowrap">
+            {formatTime(apt.time)} – {formatTime(end)}
+          </span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -127,7 +130,7 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
             {who ? ` · ${who.name}` : ""}
             {service ? ` · ${formatMoney(service.price)}` : ""}
             {" · "}
-            <a href={`tel:${apt.guestPhone.replace(/[^+\d]/g, "")}`} className="hover:text-ops-ink">{apt.guestPhone}</a>
+            <a href={telHref(apt.guestPhone)} className="tabular whitespace-nowrap hover:text-ops-ink">{formatPhone(apt.guestPhone)}</a>
           </p>
           {apt.note && <p className="mt-1.5 text-[13.5px] italic text-ops-muted">“{apt.note}”</p>}
         </div>

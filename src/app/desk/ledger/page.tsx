@@ -7,11 +7,9 @@ import { PaymentForm } from "@/components/ops/payment-form";
 import { PaidBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateShort, isSameWeek } from "@/lib/dates";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, METHOD_LABEL } from "@/lib/format";
 import { useOps } from "@/lib/ops-store";
 import { useSalonStore, useSalonToday } from "@/lib/store";
-
-const METHOD_LABEL = { cash: "Cash", card: "Card", transfer: "Transfer" } as const;
 
 export default function LedgerPage() {
   const ledgerOn = useSalonStore((s) => s.settings.modules.ledger);
@@ -48,7 +46,7 @@ export default function LedgerPage() {
     <>
       <OpsTitle
         title="Payments"
-        intro="A simple record of what was paid and how. Nothing here charges a card; it is the book you would otherwise keep on paper."
+        intro="A simple record of what was paid and how: cash, telebirr, M-PESA or bank transfer. Nothing here moves money; it is the book you would otherwise keep on paper."
         action={
           !adding && (
             <Button size="sm" className="bg-ops-accent text-white hover:bg-black" onClick={() => setAdding(true)}>

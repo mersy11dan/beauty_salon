@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatPhone, telHref } from "@/lib/phone";
 import { useSettings } from "@/lib/store";
 import { SocialRow } from "./social-icons";
 
@@ -19,10 +20,10 @@ export function SiteFooter() {
             © {year} {settings.name}. {settings.contact.address}.
           </p>
           <p className="flex items-center gap-5">
-            <a href={`tel:${settings.contact.phone.replace(/[^+\d]/g, "")}`} className="hover:text-ink">
-              {settings.contact.phone}
+            <a href={telHref(settings.contact.phone)} className="hit-area tabular hover:text-ink">
+              {formatPhone(settings.contact.phone)}
             </a>
-            <Link href="/login" className="hover:text-ink">
+            <Link href="/login" className="hit-area hover:text-ink">
               Staff sign in
             </Link>
           </p>

@@ -41,7 +41,7 @@ export type Settings = {
   name: string;
   tagline: string;
   logoUrl: string | null;
-  /** IANA zone, e.g. "America/New_York". Booking times and "today" are read in this zone. */
+  /** IANA zone, e.g. "Africa/Addis_Ababa". Booking times and "today" are read in this zone. */
   timeZone: string;
   theme: Theme;
   modules: Modules;
@@ -132,7 +132,7 @@ export type Appointment = {
   createdAt: string;
 };
 
-export type PaymentMethod = "cash" | "card" | "transfer";
+export type PaymentMethod = "cash" | "telebirr" | "mpesa" | "transfer" | "card";
 export type PaymentStatus = "paid" | "unpaid";
 
 export type Payment = {

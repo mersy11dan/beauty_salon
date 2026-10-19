@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isValidTimeZone } from "@/lib/dates";
 import { isSafeImageSrc } from "@/lib/format";
+import { checkPhone, parsePhone, type PhoneKind } from "@/lib/phone";
 
 const text = (max: number) => z.string().trim().max(max, `Keep it under ${max} characters.`);
 const required = (label: string, max: number) => text(max).min(1, `${label} is required.`);
@@ -106,11 +107,20 @@ export const emailSchema = z
   .max(254)
   .pipe(z.email({ error: "Add an email address, like name@example.com." }));
 
-export const phoneSchema = z
-  .string()
-  .trim()
-  .max(40)
-  .refine((v) => v.replace(/\D/g, "").length >= 7, "Add a phone number we can reach you on.");
+/** Same per-country rules as the phone field. Accepts "+251911…" or a local "0911…" number; stores E.164. */
+const phoneOf = (kind: PhoneKind) =>
+  z
+    .string()
+    .trim()
+    .max(40)
+    .transform((v, ctx) => {
+      const check = checkPhone(parsePhone(v), kind);
+      if (check.ok) return check.e164;
+      ctx.addIssue({ code: "custom", message: check.error });
+      return z.NEVER;
+    });
+
+export const phoneSchema = phoneOf("mobile");
 
 export const bookingSchema = z.object({
   serviceId: entityId,
@@ -127,7 +137,7 @@ export const bookingSchema = z.object({
 export const paymentSchema = z.object({
   amount: z.coerce.number().gt(0, "Enter an amount above zero.").max(1_000_000),
   label: required("Label", 200),
-  method: z.enum(["cash", "card", "transfer"]),
+  method: z.enum(["cash", "telebirr", "mpesa", "transfer", "card"]),
   status: z.enum(["paid", "unpaid"]),
   date: isoDate,
   appointmentId: entityId.nullable(),

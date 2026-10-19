@@ -7,6 +7,7 @@ import { EASE_OUT_EXPO, Reveal } from "@/components/motion/reveal";
 import { SplitWords } from "@/components/motion/split-text";
 import { Tilt } from "@/components/motion/tilt";
 import { ButtonLink } from "@/components/ui/button";
+import { telHref } from "@/lib/phone";
 import { useSalonStore } from "@/lib/store";
 
 const INTERVAL_MS = 5600;
@@ -31,7 +32,7 @@ export function Hero() {
     ? { href: "/book", label: "Book a time" }
     : modules.services
       ? { href: "/services", label: "See services" }
-      : { href: `tel:${contact.phone.replace(/[^+\d]/g, "")}`, label: "Call to book" };
+      : { href: telHref(contact.phone), label: "Call to book" };
 
   return (
     <section
@@ -54,8 +55,8 @@ export function Hero() {
                   aria-selected={i === index}
                   onClick={() => setIndex(i)}
                   className={clsx(
-                    "relative rounded-sm pb-1 transition-colors duration-500",
-                    i === index ? "text-accent" : "text-faint hover:text-muted",
+                    "hit-area rounded-sm pb-1 transition-colors duration-500",
+                    i === index ? "text-accent" : "text-muted hover:text-ink",
                   )}
                 >
                   {s.label}

@@ -46,7 +46,7 @@ Open http://localhost:3000.
 | --- | --- | --- |
 | Admin | admin@beautysalon.demo | admin1234 |
 | Desk | desk@beautysalon.demo | desk1234 |
-| Guest | maya.chen@example.com | guest1234 |
+| Guest | mahlet.girma@example.com | guest1234 |
 
 Without Cloudinary set, uploaded photos go to `.data/uploads` and are served from `/uploads/...`.
 

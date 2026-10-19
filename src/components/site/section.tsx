@@ -60,7 +60,7 @@ export function SectionHeading({
         <Reveal delay={0.25} y={10}>
           <Link
             href={more.href}
-            className="group inline-flex items-center gap-2 self-start text-[14px] font-medium text-ink md:self-auto"
+            className="hit-area group inline-flex items-center gap-2 self-start text-[14px] font-medium text-ink md:self-auto"
           >
             {more.label}
             <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">

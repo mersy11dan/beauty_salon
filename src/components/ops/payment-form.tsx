@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
+import { PAYMENT_METHODS } from "@/lib/format";
 import { useOps } from "@/lib/ops-store";
 import { useSalonToday } from "@/lib/store";
 import type { PaymentMethod, PaymentStatus } from "@/lib/types";
@@ -57,18 +58,20 @@ export function PaymentForm({
   }
 
   return (
-    <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_8rem_8rem_8rem_9rem]">
+    <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_8rem_10rem_8rem_9rem]">
       <Field label="What for" htmlFor="pay-label" className="sm:col-span-2 lg:col-span-1">
-        <Input id="pay-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Gel manicure · Maya Chen" />
+        <Input id="pay-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Gel manicure · Mahlet Girma" />
       </Field>
-      <Field label="Amount" htmlFor="pay-amount">
+      <Field label="Amount (Br)" htmlFor="pay-amount">
         <Input id="pay-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
       </Field>
       <Field label="Method" htmlFor="pay-method">
         <Select id="pay-method" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
-          <option value="cash">Cash</option>
-          <option value="card">Card</option>
-          <option value="transfer">Transfer</option>
+          {PAYMENT_METHODS.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
         </Select>
       </Field>
       <Field label="Status" htmlFor="pay-status">

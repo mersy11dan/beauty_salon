@@ -18,7 +18,7 @@ import type { Settings } from "@/lib/types";
 
 export const staffRole = pgEnum("staff_role", ["admin", "staff"]);
 export const appointmentStatus = pgEnum("appointment_status", ["requested", "confirmed", "completed", "cancelled"]);
-export const paymentMethod = pgEnum("payment_method", ["cash", "card", "transfer"]);
+export const paymentMethod = pgEnum("payment_method", ["cash", "card", "transfer", "telebirr", "mpesa"]);
 export const paymentStatus = pgEnum("payment_status", ["paid", "unpaid"]);
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();

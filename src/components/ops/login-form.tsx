@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { DEMO_ACCOUNTS } from "@/lib/demo";
 import { useSalonStore } from "@/lib/store";
+import { checkEmail } from "@/lib/validation";
 
 export function LoginForm({ next, demoMode }: { next: string; demoMode: boolean }) {
   const router = useRouter();
@@ -15,14 +16,25 @@ export function LoginForm({ next, demoMode }: { next: string; demoMode: boolean 
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState<string>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
-    if (!email.trim() || !password) {
-      setError("Enter your email and password.");
+    const badEmail = checkEmail(email);
+    setEmailError(badEmail);
+    if (badEmail) {
+      setError("");
+      emailRef.current?.focus();
+      return;
+    }
+    if (!password) {
+      setError("Enter your password.");
+      passwordRef.current?.focus();
       return;
     }
     setBusy(true);
@@ -31,6 +43,7 @@ export function LoginForm({ next, demoMode }: { next: string; demoMode: boolean 
     if (!result.ok) {
       setBusy(false);
       setError(result.error);
+      passwordRef.current?.focus();
       return;
     }
     router.replace(next || (result.data.role === "admin" ? "/admin" : "/desk"));
@@ -39,6 +52,7 @@ export function LoginForm({ next, demoMode }: { next: string; demoMode: boolean 
   const fill = (a: { email: string; password: string }) => {
     setEmail(a.email);
     setPassword(a.password);
+    setEmailError(undefined);
     setError("");
   };
 
@@ -52,18 +66,37 @@ export function LoginForm({ next, demoMode }: { next: string; demoMode: boolean 
         <p className="mt-1.5 text-[14.5px] text-ops-muted">For salon staff and the site administrator.</p>
 
         <form onSubmit={submit} noValidate className="mt-8 flex flex-col gap-5">
-          <Field label="Email" htmlFor="email">
-            <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Field label="Email" htmlFor="email" error={emailError}>
+            <Input
+              ref={emailRef}
+              id="email"
+              type="email"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-invalid={!!emailError}
+              aria-describedby={emailError ? "email-error" : undefined}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError) setEmailError(checkEmail(e.target.value));
+              }}
+              onBlur={() => email.trim() && setEmailError(checkEmail(email))}
+            />
           </Field>
           <Field label="Password" htmlFor="password" error={error}>
             <Input
+              ref={passwordRef}
               id="password"
               type="password"
               autoComplete="current-password"
               aria-invalid={!!error}
               aria-describedby={error ? "password-error" : undefined}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError("");
+              }}
             />
           </Field>
           <Button type="submit" size="lg" disabled={busy} className="mt-2 bg-ops-accent text-white hover:bg-black">

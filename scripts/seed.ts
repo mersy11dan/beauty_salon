@@ -50,7 +50,7 @@ async function main() {
 
     if (args.has("--demo")) {
       await seedDemo(db);
-      console.log("Demo logins ready: admin@beautysalon.demo / admin1234, desk@beautysalon.demo / desk1234, maya.chen@example.com / guest1234");
+      console.log("Demo logins ready: admin@beautysalon.demo / admin1234, desk@beautysalon.demo / desk1234, mahlet.girma@example.com / guest1234");
     }
 
     if (!(await hasAdmin(db))) {
