@@ -286,6 +286,7 @@ const ENV_VARS = [
   { name: "ADMIN_PASSWORD", what: "A long password, at least 8 characters. Different for every client." },
   { name: "ADMIN_NAME", what: "Optional. The name shown in the admin." },
   { name: "DEMO_MODE", what: "false. Demo logins and Reset demo data stay off on a live website." },
+  { name: "DATABASE_POOL_MAX", what: "3. Keeps the number of database connections low on Vercel." },
 ];
 
 function Steps({ children }: { children: React.ReactNode }) {
@@ -320,8 +321,10 @@ function DeployGuide() {
         </li>
         <li>
           In the new project, open <strong className="font-medium">Storage</strong>, create a <strong className="font-medium">Neon</strong>{" "}
-          Postgres database (the free plan is enough to start) and connect it to the project. Use a new database for every client, so no two
-          clients ever share data.
+          Postgres database (the free plan is enough to start) in the region closest to the salon, and connect it to the project with{" "}
+          <strong className="font-medium">Preview</strong> branching on, so test deployments never touch the live data. Use a new database for
+          every client, so no two clients ever share data. Then, under <strong className="font-medium">Settings → Functions</strong>, set the
+          function region to the same place.
         </li>
         <li>
           Create a <Ext href="https://cloudinary.com">Cloudinary</Ext> account for the client and copy the{" "}

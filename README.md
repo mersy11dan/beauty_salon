@@ -96,7 +96,7 @@ Do this once for the demo (with `DEMO_MODE=true`) and once for every client (wit
 
 Every page reads from the database, so a deployment without one shows only the "We'll be right back" page and `/api/health` reports the database as down.
 
-1. **Database.** On Vercel, open the project's **Storage** tab, create a **Neon** database and connect it to the project; Vercel adds `DATABASE_URL`. Elsewhere, create a free Neon project and copy the **pooled** connection string (its host contains `-pooler`).
+1. **Database.** On Vercel, open the project's **Storage** tab, create a **Neon** database and connect it to the project; Vercel adds `DATABASE_URL`. Pick the region closest to the salon (Frankfurt for Ethiopia), then set the same region under the project's **Settings → Functions**, because Vercel runs functions in Washington, D.C. (`iad1`) by default. When connecting, turn on **Preview** branching so preview deployments get their own copy of the database instead of the live one. Elsewhere, create a free Neon project and copy the **pooled** connection string (its host contains `-pooler`).
 2. **Photos.** Create a free Cloudinary account. Copy the **API environment variable** (`cloudinary://API_KEY:API_SECRET@CLOUD_NAME`) from Settings, then API Keys. Without it, photo uploads fail on Vercel, whose disk is read-only.
 3. **Environment.** Set these on the host:
 
@@ -106,6 +106,7 @@ Every page reads from the database, so a deployment without one shows only the "
    | `CLOUDINARY_URL` | Cloudinary API environment variable |
    | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | The owner's login, password of 8 or more characters (only needed for the first deploy or when seeding). `ADMIN_NAME` is optional. |
    | `DEMO_MODE` | `false` for a client, `true` for your demo |
+   | `DATABASE_POOL_MAX` | `3` on serverless hosts |
 
 4. **Tables and first admin.**
    - **On Vercel this is automatic.** `npm run build` runs `scripts/deploy-setup.ts` first. On a production deploy it applies new migrations, and while the database has no admin login it adds the sample salon, the admin from `ADMIN_EMAIL` / `ADMIN_PASSWORD`, and with `DEMO_MODE=true` the demo logins and sample bookings. Once an admin exists, deploys never add content again. Preview and local builds skip it. A production deploy without `DATABASE_URL` fails with a message saying what to add, so the previous deployment stays live.
@@ -125,8 +126,11 @@ Every page reads from the database, so a deployment without one shows only the "
 - **Each client's data is separate.** Bookings, payments and guest accounts live only in that client's database, and photos in their Cloudinary.
 - **One codebase, many sites.** Every client project builds from this repository's `main` branch, so a fix pushed there reaches all of them on their next deploy. Test changes on the demo first. On Vercel each deploy migrates that client's database itself.
 - **Plans and costs.** Vercel's free Hobby plan is meant for non-commercial use, so client sites need Vercel Pro, a project inside the client's own Vercel account (they then own the billing and the domain), or Netlify's free plan.
-- **Backups.** On a live site, **Launch → Download backup** saves the whole design with its photos. Bookings and payments stay in the database; use Neon's backups for those.
+- **Free-plan limits.** Neon Free gives each project 100 compute-hours a month (compute sleeps after 5 idle minutes), 1 GB of storage and a 6-hour restore window; running out pauses the database until the next month. Cloudinary Free gives 25 credits a month (1 credit is about 1 GB stored, 1 GB served or 1,000 transformations). Vercel Hobby includes 4 hours of active CPU a month and is non-commercial only.
+- **Backups.** On a live site, **Launch → Download backup** saves the whole design with its photos. Bookings and payments stay in the database, and Neon Free can only restore the last 6 hours, so move client sites to Neon's paid Launch plan (billed by use) when they start taking real bookings.
+- **Size limits.** Vercel accepts at most 4.5 MB per request. The admin shrinks photos below 4 MB before uploading, and the site file download streams, so it can be larger.
+- **Preview deployments** never delete photos from storage, because with preview branching they run on a copy of the live database but share the live Cloudinary account.
 
-`GET /api/health` returns 200 when the database answers, for uptime monitors.
+`GET /api/health` returns 200 when the database answers. Each check wakes the database, so on Neon Free poll it no more than every 30 minutes or so; a 5-minute monitor keeps it awake around the clock and can use up the month's compute.
 
 Behind a reverse proxy that rewrites the `Host` header, add the public domain to `serverActions.allowedOrigins` in `next.config.ts` so Server Actions accept requests from it.
