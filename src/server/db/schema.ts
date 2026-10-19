@@ -94,7 +94,8 @@ export const reviews = pgTable(
     author: text("author").notNull(),
     text: text("text").notNull(),
     rating: smallint("rating").notNull(),
-    date: date("date", { mode: "string" }).notNull(),
+    /** null hides the date on the site. */
+    date: date("date", { mode: "string" }),
     position: integer("position").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -106,7 +107,8 @@ export const offers = pgTable("offers", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   detail: text("detail").notNull(),
-  until: date("until", { mode: "string" }).notNull(),
+  /** null runs the offer until it is paused. */
+  until: date("until", { mode: "string" }),
   active: boolean("active").notNull().default(true),
   position: integer("position").notNull().default(0),
   createdAt: createdAt(),

@@ -1,5 +1,7 @@
 import { addDays, todayISO } from "./dates";
 import { DEMO_CUSTOMER } from "./demo";
+import { DEFAULT_FONTS } from "./fonts";
+import { DEFAULT_THEME } from "./palettes";
 import type { Appointment, Hours, Payment, PortfolioItem, PublicData, Service } from "./types";
 
 export const DEFAULT_TIME_ZONE = "Africa/Addis_Ababa";
@@ -74,13 +76,19 @@ export function createSeedContent(): PublicData {
       name: "Beauty Salon",
       tagline: "Nails, hair and makeup, by appointment",
       logoUrl: null,
+      faviconUrl: null,
       timeZone: DEFAULT_TIME_ZONE,
-      theme: {
-        background: "#F5F1F2",
-        ink: "#1E181C",
-        accent: "#6E2B3F",
-        surface: "#FFFFFF",
+      theme: { ...DEFAULT_THEME },
+      fonts: { ...DEFAULT_FONTS },
+      copy: {},
+      seo: {
+        title: "",
+        description: "Nails, hair and makeup, by appointment.",
       },
+      currency: "ETB",
+      clock: "12h",
+      demoHints: true,
+      checklist: {},
       modules: {
         services: true,
         portfolio: true,
@@ -102,6 +110,7 @@ export function createSeedContent(): PublicData {
       about: {
         heading: "Three chairs, one small room, no rush.",
         body: ABOUT_BODY,
+        photos: [],
       },
       contact: CONTACT,
       hours,

@@ -10,6 +10,8 @@ import {
   deleteReview,
   deleteService,
   deleteStaffMember,
+  importSite,
+  reorderContent,
   saveOffer,
   savePortfolioItem,
   saveReview,
@@ -20,11 +22,13 @@ import {
 import { resetDemoData } from "@/server/actions/demo";
 import type { InitialSnapshot } from "@/server/data/snapshot";
 import { call } from "./call";
+import { pickContent } from "./content";
 import { nowInZone } from "./dates";
 import { NOT_SIGNED_IN } from "./messages";
 import type {
   ActionResult,
   Appointment,
+  ContentList,
   Customer,
   ModuleKey,
   Offer,
@@ -34,6 +38,7 @@ import type {
   Service,
   Session,
   Settings,
+  SiteContent,
   StaffMember,
   Theme,
 } from "./types";
@@ -60,6 +65,10 @@ type Actions = {
   removeReview: (id: string) => Promise<ActionResult>;
   upsertOffer: (item: Offer) => Promise<ActionResult<Offer>>;
   removeOffer: (id: string) => Promise<ActionResult>;
+  /** Moves an item one place up (-1) or down (1). The site shows lists in this order. */
+  moveItem: (list: ContentList, id: string, dir: -1 | 1) => Promise<ActionResult>;
+  /** Replaces the whole site with a loaded site file. Photos must already be uploaded. */
+  replaceContent: (content: SiteContent) => Promise<ActionResult<SiteContent>>;
 
   createAppointment: (input: BookingRequest) => Promise<ActionResult<Appointment>>;
 
@@ -199,6 +208,28 @@ export function createSalonStore(initial: InitialSnapshot): SalonStore {
       removeReview: reviews.remove,
       upsertOffer: offers.upsert,
       removeOffer: offers.remove,
+
+      moveItem: async (list, id, dir) => {
+        const before = get()[list] as { id: string }[];
+        const i = before.findIndex((x) => x.id === id);
+        const j = i + dir;
+        if (i === -1 || j < 0 || j >= before.length) return { ok: true, data: null };
+        const next = before.slice();
+        [next[i], next[j]] = [next[j], next[i]];
+        set({ [list]: next } as Partial<SalonState>);
+        const result = report(await call(() => reorderContent(list, next.map((x) => x.id))));
+        if (!result.ok && get()[list] === next) set({ [list]: before } as Partial<SalonState>);
+        return result;
+      },
+      replaceContent: async (content) => {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        dirty = false;
+        await chain;
+        const result = await call(() => importSite(content));
+        if (result.ok) set({ ...pickContent(result.data), settingsSave: { state: "saved", error: null } });
+        return result;
+      },
 
       createAppointment: (input) => call(() => requestAppointment(input)),
 

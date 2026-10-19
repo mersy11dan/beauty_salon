@@ -13,6 +13,7 @@ export function LoginForm({ next, demoMode }: { next: string; demoMode: boolean 
   const router = useRouter();
   const signIn = useSalonStore((s) => s.signIn);
   const name = useSalonStore((s) => s.settings.name);
+  const demoHints = useSalonStore((s) => s.settings.demoHints) && demoMode;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -104,7 +105,7 @@ export function LoginForm({ next, demoMode }: { next: string; demoMode: boolean 
           </Button>
         </form>
 
-        {demoMode && (
+        {demoHints && (
           <div className="mt-10 rounded-xl border border-ops-line bg-ops-surface p-5 text-[13.5px]">
             <p className="font-medium text-ops-ink">Demo logins</p>
             <dl className="mt-3 grid grid-cols-[5rem_1fr] gap-y-2 text-ops-muted">

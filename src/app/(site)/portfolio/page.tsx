@@ -10,6 +10,7 @@ import { EASE_OUT_EXPO } from "@/components/motion/reveal";
 import { useMediaQuery } from "@/components/motion/use-media";
 import { ModuleGate } from "@/components/site/module-gate";
 import { PageTitle } from "@/components/site/section";
+import { useCopy } from "@/lib/site-hooks";
 import { useSalonStore } from "@/lib/store";
 import type { PortfolioItem } from "@/lib/types";
 
@@ -17,24 +18,28 @@ function subscribeHash(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
   return () => window.removeEventListener("hashchange", onChange);
 }
+/** Filter key for "everything"; can't clash with a category the admin types. */
+const ALL = "\u0000all";
+
 function readHash() {
   return decodeURIComponent(window.location.hash.slice(1));
 }
 
 export default function PortfolioPage() {
   const portfolio = useSalonStore((s) => s.portfolio);
+  const copy = useCopy();
   const reduce = useReducedMotion();
   const cols = useMediaQuery("(min-width: 768px)") ? 3 : 2;
   const customCursor = useMediaQuery(CURSOR_LABEL_QUERY);
-  const [filter, setFilter] = useState<string>("All");
+  const [filter, setFilter] = useState<string>(ALL);
   const lastTrigger = useRef<HTMLElement | null>(null);
 
   // The URL hash is the open-photo state, so /portfolio#pf_hair_3 deep-links
   // from the home gallery and the browser back button closes the lightbox.
   const openId = useSyncExternalStore(subscribeHash, readHash, () => "");
 
-  const categories = useMemo(() => ["All", ...Array.from(new Set(portfolio.map((p) => p.category)))], [portfolio]);
-  const items = filter === "All" ? portfolio : portfolio.filter((p) => p.category === filter);
+  const categories = useMemo(() => [ALL, ...Array.from(new Set(portfolio.map((p) => p.category)))], [portfolio]);
+  const items = filter === ALL ? portfolio : portfolio.filter((p) => p.category === filter);
   const openIndex = items.findIndex((p) => p.id === openId);
   const open = openIndex >= 0 ? items[openIndex] : null;
 
@@ -78,11 +83,7 @@ export default function PortfolioPage() {
 
   return (
     <ModuleGate module="portfolio">
-      <PageTitle
-        label="Portfolio"
-        title="Recent work"
-        intro="Work from the last few months. Every photo is a real client who said yes to being shown."
-      />
+      <PageTitle label={copy.portfolioLabel} title={copy.portfolioTitle} intro={copy.portfolioIntro} />
       <div className="mx-auto max-w-6xl px-6 pb-20 md:pb-28">
         {categories.length > 2 && (
           <div className="mb-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
@@ -106,11 +107,11 @@ export default function PortfolioPage() {
                     />
                   )}
                   {filter !== c && <span aria-hidden className="absolute inset-0 rounded-full border border-line-strong" />}
-                  <span className="relative">{c}</span>
+                  <span className="relative">{c === ALL ? copy.portfolioAll : c}</span>
                 </button>
               ))}
             </div>
-            <Count value={items.length} />
+            <Count value={items.length} one={copy.portfolioPhoto} many={copy.portfolioPhotos} />
           </div>
         )}
 
@@ -132,6 +133,7 @@ export default function PortfolioPage() {
                     hidden={open?.id === p.id}
                     delay={(i % cols) * 0.09}
                     customCursor={customCursor}
+                    cursorLabel={copy.portfolioView}
                     onOpen={(el) => show(p.id, el)}
                   />
                 </motion.li>
@@ -153,7 +155,7 @@ export default function PortfolioPage() {
           </AnimatePresence>
         </LayoutGroup>
 
-        {items.length === 0 && <p className="text-[16px] text-muted">Nothing here yet.</p>}
+        {items.length === 0 && <p className="text-[16px] text-muted">{copy.portfolioEmpty}</p>}
       </div>
       <CursorLabel hidden={!!open} />
     </ModuleGate>
@@ -161,10 +163,10 @@ export default function PortfolioPage() {
 }
 
 /** Photo count beside the filters; the digits roll over when the filter changes. */
-function Count({ value }: { value: number }) {
+function Count({ value, one, many }: { value: number; one: string; many: string }) {
   const reduce = useReducedMotion();
   const digits = String(value).padStart(2, "0");
-  const noun = value === 1 ? "photo" : "photos";
+  const noun = value === 1 ? one : many;
   return (
     <p className="flex items-baseline gap-1.5 text-[12.5px] text-muted">
       <span aria-hidden className="clip-line tabular relative inline-flex text-ink">
@@ -194,12 +196,14 @@ function Thumb({
   hidden,
   delay,
   customCursor,
+  cursorLabel,
   onOpen,
 }: {
   item: PortfolioItem;
   hidden: boolean;
   delay: number;
   customCursor: boolean;
+  cursorLabel: string;
   onOpen: (el: HTMLElement) => void;
 }) {
   return (
@@ -208,7 +212,7 @@ function Thumb({
         type="button"
         onClick={(e) => onOpen(e.currentTarget)}
         aria-label={`Open ${item.caption}`}
-        data-cursor="View"
+        data-cursor={cursorLabel}
         className={clsx("block w-full rounded-[14px] text-left", customCursor ? "cursor-none" : "cursor-zoom-in")}
       >
         <RevealFrame delay={delay} radius={14}>
@@ -314,7 +318,7 @@ function Lightbox({
               transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
             >
               <p className="text-[11.5px] font-semibold uppercase tracking-[0.22em] text-bg/60">{item.category}</p>
-              <p className="font-script mt-1 text-[2rem] leading-[1.1] md:text-[2.4rem]">{item.caption}</p>
+              <p className="font-script mt-1 text-[length:calc(2rem*var(--script-scale))] leading-[1.1] md:text-[length:calc(2.4rem*var(--script-scale))]">{item.caption}</p>
               <p className="tabular mt-2 text-[12.5px] text-bg/60">
                 {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
               </p>

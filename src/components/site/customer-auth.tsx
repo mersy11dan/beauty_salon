@@ -10,6 +10,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { DEMO_CUSTOMER } from "@/lib/demo";
 import { safeNext } from "@/lib/format";
 import { checkPhone, DEFAULT_COUNTRY, phoneHint, type PhoneValue } from "@/lib/phone";
+import { useCopy } from "@/lib/site-hooks";
 import { useCustomer, useSalonStore } from "@/lib/store";
 import { checkEmail, checkName, checkNewPassword, PASSWORD_MIN, suggestEmail } from "@/lib/validation";
 import { PageTitle } from "./section";
@@ -33,9 +34,10 @@ export function CustomerAuth() {
   const router = useRouter();
   const params = useSearchParams();
   const customer = useCustomer();
-  const demoMode = useSalonStore((s) => s.demoMode);
+  const demoHints = useSalonStore((s) => s.demoMode && s.settings.demoHints);
   const signInCustomer = useSalonStore((s) => s.signInCustomer);
   const signUpCustomer = useSalonStore((s) => s.signUpCustomer);
+  const copy = useCopy();
 
   const next = safeNext(params.get("next"), "/book");
   const [mode, setMode] = useState<Mode>(params.get("mode") === "create" ? "create" : "sign-in");
@@ -133,7 +135,7 @@ export function CustomerAuth() {
 
   const suggestion = errors.email ? null : suggestEmail(email);
   const emailField = (id: string) => (
-    <Field label="Email" htmlFor={id} error={errors.email}>
+    <Field label={copy.accountEmail} htmlFor={id} error={errors.email}>
       <Input
         ref={emailRef}
         id={id}
@@ -165,17 +167,14 @@ export function CustomerAuth() {
 
   return (
     <>
-      <PageTitle
-        title="Before you book"
-        intro="Sign in, or create an account if it is your first time. We keep your details so the next booking takes seconds."
-      />
+      <PageTitle title={copy.accountTitle} intro={copy.accountIntro} />
       <div className="mx-auto max-w-6xl px-6 pb-24">
         <div className="max-w-md rounded-[16px] bg-surface p-7 shadow-[0_10px_30px_-18px_rgba(30,24,28,0.25)] md:p-8">
           <div role="group" aria-label="Account" className="grid grid-cols-2 gap-1 rounded-full border border-line-strong p-1">
             {(
               [
-                ["sign-in", "Sign in"],
-                ["create", "Create account"],
+                ["sign-in", copy.accountTabSignIn],
+                ["create", copy.accountTabCreate],
               ] as const
             ).map(([m, label]) => (
               <button
@@ -196,7 +195,7 @@ export function CustomerAuth() {
           {mode === "sign-in" ? (
             <form onSubmit={signIn} noValidate className="mt-7 flex flex-col gap-5">
               {emailField("signin-email")}
-              <Field label="Password" htmlFor="signin-password" error={errors.password}>
+              <Field label={copy.accountPassword} htmlFor="signin-password" error={errors.password}>
                 <Input
                   ref={passwordRef}
                   id="signin-password"
@@ -211,37 +210,37 @@ export function CustomerAuth() {
                 />
               </Field>
               <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
-                {busy ? "Signing in…" : "Sign in and continue"}
+                {busy ? copy.accountSigningIn : copy.accountSignInButton}
               </Button>
               <p className="text-center text-[14px] text-muted">
-                First time here?{" "}
+                {copy.accountFirstTime}{" "}
                 <button type="button" onClick={() => switchTo("create")} className={TEXT_BUTTON}>
-                  Create an account
+                  {copy.accountCreateLink}
                 </button>
               </p>
-              {demoMode && (
-              <div className="hairline-t pt-5 text-[13px] text-muted">
-                <p>
-                  Demo guest:{" "}
-                  <button
-                    type="button"
-                    className="cursor-pointer text-ink hover:text-accent"
-                    onClick={() => {
-                      setEmail(DEMO_CUSTOMER.email);
-                      setPassword(DEMO_CUSTOMER.password);
-                      setErrors({});
-                    }}
-                  >
-                    {DEMO_CUSTOMER.email} · {DEMO_CUSTOMER.password}
-                  </button>
-                </p>
-                <p className="mt-1">Select it to fill the form.</p>
-              </div>
+              {demoHints && (
+                <div className="hairline-t pt-5 text-[13px] text-muted">
+                  <p>
+                    Demo guest:{" "}
+                    <button
+                      type="button"
+                      className="cursor-pointer text-ink hover:text-accent"
+                      onClick={() => {
+                        setEmail(DEMO_CUSTOMER.email);
+                        setPassword(DEMO_CUSTOMER.password);
+                        setErrors({});
+                      }}
+                    >
+                      {DEMO_CUSTOMER.email} · {DEMO_CUSTOMER.password}
+                    </button>
+                  </p>
+                  <p className="mt-1">Select it to fill the form.</p>
+                </div>
               )}
             </form>
           ) : (
             <form onSubmit={create} noValidate className="mt-7 flex flex-col gap-5">
-              <Field label="Full name" htmlFor="create-name" error={errors.name}>
+              <Field label={copy.accountName} htmlFor="create-name" error={errors.name}>
                 <Input
                   ref={nameRef}
                   id="create-name"
@@ -256,7 +255,12 @@ export function CustomerAuth() {
                   onBlur={blurCheck("name", !!name.trim())}
                 />
               </Field>
-              <Field label="Mobile number" htmlFor="create-phone" error={errors.phone} hint={`${phoneHint(phone.country)} We confirm bookings by SMS or a call.`}>
+              <Field
+                label={copy.accountPhone}
+                htmlFor="create-phone"
+                error={errors.phone}
+                hint={[phoneHint(phone.country), copy.accountPhoneHint].filter(Boolean).join(" ")}
+              >
                 <PhoneInput
                   id="create-phone"
                   inputRef={phoneRef}
@@ -274,7 +278,7 @@ export function CustomerAuth() {
                 />
               </Field>
               {emailField("create-email")}
-              <Field label="Password" htmlFor="create-password" error={errors.password} hint={`At least ${PASSWORD_MIN} characters.`}>
+              <Field label={copy.accountPassword} htmlFor="create-password" error={errors.password} hint={`At least ${PASSWORD_MIN} characters.`}>
                 <Input
                   ref={passwordRef}
                   id="create-password"
@@ -290,23 +294,25 @@ export function CustomerAuth() {
                 />
               </Field>
               <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
-                {busy ? "Creating your account…" : "Create account and continue"}
+                {busy ? copy.accountCreating : copy.accountCreateButton}
               </Button>
               <p className="text-center text-[14px] text-muted">
-                Already have an account?{" "}
+                {copy.accountHaveOne}{" "}
                 <button type="button" onClick={() => switchTo("sign-in")} className={TEXT_BUTTON}>
-                  Sign in
+                  {copy.accountSignInLink}
                 </button>
               </p>
             </form>
           )}
         </div>
-        <p className="mt-6 text-[13px] text-muted">
-          Work at the salon?{" "}
-          <Link href="/login" className="text-ink hover:text-accent">
-            Staff sign in
-          </Link>
-        </p>
+        {copy.accountStaff && (
+          <p className="mt-6 text-[13px] text-muted">
+            {copy.accountStaff}{" "}
+            <Link href="/login" className="text-ink hover:text-accent">
+              {copy.accountStaffLink}
+            </Link>
+          </p>
+        )}
       </div>
     </>
   );

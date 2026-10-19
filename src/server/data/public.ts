@@ -17,9 +17,13 @@ export function withSettingsDefaults(stored: Partial<Settings> | undefined): Set
     ...d,
     ...s,
     theme: { ...d.theme, ...s.theme },
+    fonts: { ...d.fonts, ...s.fonts },
     modules: { ...d.modules, ...s.modules },
     hero: { ...d.hero, ...s.hero },
-    about: { ...d.about, ...s.about },
+    about: { ...d.about, ...s.about, photos: s.about?.photos ?? d.about.photos },
+    seo: { ...d.seo, ...s.seo },
+    copy: { ...d.copy, ...s.copy },
+    checklist: { ...d.checklist, ...s.checklist },
     contact: { ...d.contact, ...s.contact },
     socials: { ...d.socials, ...s.socials },
     hours: { ...d.hours, ...s.hours },
@@ -67,8 +71,8 @@ async function loadPublicData(): Promise<PublicData> {
       }),
     ),
     portfolio: portfolioRows.map((p) => ({ id: p.id, src: p.src, alt: p.alt, caption: p.caption, category: p.category })),
-    reviews: reviewRows.map((r) => ({ id: r.id, author: r.author, text: r.text, rating: r.rating as 1 | 2 | 3 | 4 | 5, date: r.date })),
-    offers: offerRows.map((o) => ({ id: o.id, title: o.title, detail: o.detail, until: o.until, active: o.active })),
+    reviews: reviewRows.map((r) => ({ id: r.id, author: r.author, text: r.text, rating: r.rating as 1 | 2 | 3 | 4 | 5, date: r.date ?? "" })),
+    offers: offerRows.map((o) => ({ id: o.id, title: o.title, detail: o.detail, until: o.until ?? "", active: o.active })),
   };
 }
 
@@ -77,5 +81,5 @@ async function loadPublicData(): Promise<PublicData> {
  * so visitors almost never wait on the database.
  */
 export const getPublicData = cache(
-  unstable_cache(loadPublicData, ["salon-public-v1"], { tags: [PUBLIC_TAG], revalidate: 3600 }),
+  unstable_cache(loadPublicData, ["salon-public-v2"], { tags: [PUBLIC_TAG], revalidate: 3600 }),
 );

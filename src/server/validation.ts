@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { copyField } from "@/lib/copy";
 import { isValidTimeZone } from "@/lib/dates";
-import { isSafeImageSrc } from "@/lib/format";
+import { BODY_FONTS, DISPLAY_FONTS, SCRIPT_FONTS } from "@/lib/fonts";
+import { isSafeImageSrc, validCurrency } from "@/lib/format";
 import { checkPhone, parsePhone, type PhoneKind } from "@/lib/phone";
 
 const text = (max: number) => z.string().trim().max(max, `Keep it under ${max} characters.`);
@@ -14,6 +16,8 @@ export const isoDate = z
     const d = new Date(`${v}T00:00:00Z`);
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
   }, "That date doesn't exist.");
+/** Blank means no date; stored as null. */
+const optionalDate = z.union([z.literal(""), isoDate]);
 export const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 09:30.");
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a 6-digit colour like #6E2B3F.");
 const imageSrc = z.string().max(2000).refine((v) => v === "" || isSafeImageSrc(v), "Upload the photo again.");
@@ -35,12 +39,26 @@ const moduleFlags = z.object({
   offers: z.boolean(),
 });
 
+const fontId = (list: { id: string }[]) =>
+  z.string().refine((v) => list.some((f) => f.id === v), "Pick a font from the list.");
+
+/** Only known phrases are kept; see `lib/copy.ts`. */
+const copyOverrides = z
+  .record(z.string().max(60), z.string().max(2000, "Keep it under 2000 characters."))
+  .transform((o) => Object.fromEntries(Object.entries(o).filter(([k]) => copyField(k))));
+
+const checklist = z
+  .record(z.string().regex(/^\w{1,40}$/), z.boolean())
+  .refine((o) => Object.keys(o).length <= 50, "Too many checklist items.");
+
 export const settingsSchema = z.object({
   name: text(80),
   tagline: text(120),
   logoUrl: imageSrc.nullable().transform((v) => v || null),
+  faviconUrl: imageSrc.nullable().transform((v) => v || null),
   timeZone: z.string().max(64).refine(isValidTimeZone, "Pick a time zone from the list."),
   theme: z.object({ background: color, ink: color, accent: color, surface: color }),
+  fonts: z.object({ display: fontId(DISPLAY_FONTS), script: fontId(SCRIPT_FONTS), body: fontId(BODY_FONTS) }),
   modules: moduleFlags,
   hero: z.object({
     headline: text(160),
@@ -49,7 +67,17 @@ export const settingsSchema = z.object({
       .array(z.object({ id: z.string().max(60), label: text(40), src: imageSrc, alt: text(300) }))
       .max(5, "Up to five photos."),
   }),
-  about: z.object({ heading: text(160), body: text(3000) }),
+  about: z.object({
+    heading: text(160),
+    body: text(3000),
+    photos: z.array(imageSrc).max(2, "Up to two photos."),
+  }),
+  copy: copyOverrides,
+  seo: z.object({ title: text(120), description: text(300) }),
+  currency: z.string().refine((v) => validCurrency(v) !== null, "Pick a currency from the list."),
+  clock: z.enum(["12h", "24h"]),
+  demoHints: z.boolean(),
+  checklist,
   contact: z.object({ phone: text(40), email: text(120), address: text(200), mapUrl: link }),
   hours: z.object({ 0: dayHours, 1: dayHours, 2: dayHours, 3: dayHours, 4: dayHours, 5: dayHours, 6: dayHours }),
   capacity: z.coerce.number().int().min(1).max(50),
@@ -89,15 +117,25 @@ export const reviewSchema = z.object({
   author: required("Name", 80),
   text: required("Quote", 2000),
   rating: z.coerce.number().int().min(1).max(5),
-  date: isoDate,
+  date: optionalDate,
 });
 
 export const offerSchema = z.object({
   id: entityId,
   title: required("Title", 160),
   detail: required("Detail", 1000),
-  until: isoDate,
+  until: optionalDate,
   active: z.boolean(),
+});
+
+/** A whole site, as loaded from a site file on the Launch page. */
+export const siteSchema = z.object({
+  settings: settingsSchema,
+  services: z.array(serviceSchema).max(500, "Up to 500 services."),
+  staff: z.array(staffMemberSchema).max(100, "Up to 100 team members."),
+  portfolio: z.array(portfolioItemSchema).max(500, "Up to 500 photos."),
+  reviews: z.array(reviewSchema).max(500, "Up to 500 reviews."),
+  offers: z.array(offerSchema).max(100, "Up to 100 offers."),
 });
 
 export const emailSchema = z

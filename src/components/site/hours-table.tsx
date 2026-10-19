@@ -1,10 +1,15 @@
+"use client";
+
 import clsx from "clsx";
-import { formatTime, WEEKDAY_NAMES } from "@/lib/dates";
+import { WEEKDAY_NAMES } from "@/lib/dates";
+import { useCopy, useTime } from "@/lib/site-hooks";
 import type { Hours, Weekday } from "@/lib/types";
 
 const ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
 
 export function HoursTable({ hours, today }: { hours: Hours; today?: Weekday }) {
+  const copy = useCopy();
+  const formatTime = useTime();
   return (
     <dl className="hairline-t">
       {ORDER.map((d) => {
@@ -20,7 +25,7 @@ export function HoursTable({ hours, today }: { hours: Hours; today?: Weekday }) 
           >
             <dt className={clsx(isToday && "font-semibold")}>{WEEKDAY_NAMES[d]}</dt>
             <dd className="tabular">
-              {h ? `${formatTime(h.open)} – ${formatTime(h.close)}` : "Closed"}
+              {h ? `${formatTime(h.open)} – ${formatTime(h.close)}` : copy.hoursClosed}
             </dd>
           </div>
         );

@@ -9,8 +9,10 @@ import { Reveal, RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { SplitWords } from "@/components/motion/split-text";
 import { Tilt } from "@/components/motion/tilt";
 import { ButtonLink } from "@/components/ui/button";
+import { fill } from "@/lib/copy";
 import { formatDateShort, todayISO, weekdayOf } from "@/lib/dates";
 import { formatPhone, telHref } from "@/lib/phone";
+import { useCopy } from "@/lib/site-hooks";
 import { useSalonStore } from "@/lib/store";
 import type { Service } from "@/lib/types";
 import { GalleryScroll } from "./gallery-scroll";
@@ -23,12 +25,15 @@ import { Stars } from "./stars";
 export function ScriptMarquee() {
   const slides = useSalonStore((s) => s.settings.hero.slides);
   const services = useSalonStore((s) => s.services);
+  const extra = useCopy().marqueeExtra;
   const words = useMemo(() => {
-    const fromSlides = slides.map((s) => s.label);
+    const fromSlides = slides.map((s) => s.label).filter(Boolean);
     const fromServices = Array.from(new Set(services.map((s) => s.category)));
     const list = fromSlides.length ? fromSlides : fromServices;
-    return list.length ? [...list, "By appointment"] : ["By appointment"];
-  }, [slides, services]);
+    return extra ? [...list, extra] : list;
+  }, [slides, services, extra]);
+
+  if (words.length === 0) return null;
 
   return (
     <Marquee className="hairline-t hairline-b py-5 md:py-6" durationSec={words.length * 9}>
@@ -47,6 +52,7 @@ export function ServicesPreview() {
   const portfolio = useSalonStore((s) => s.portfolio);
   const slides = useSalonStore((s) => s.settings.hero.slides);
   const modules = useSalonStore((s) => s.settings.modules);
+  const copy = useCopy();
   const [hovered, setHovered] = useState<Service | null>(null);
 
   const previewFor = (svc: Service | null) => {
@@ -65,14 +71,14 @@ export function ServicesPreview() {
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-5">
           <SectionHeading
-            label="Services"
-            title="Priced up front"
-            intro="Times are how long to set aside, including a chat at the start. Hover a line to see the kind of work it means."
+            label={copy.homeServicesLabel}
+            title={copy.homeServicesTitle}
+            intro={copy.homeServicesIntro}
             className="mb-0 md:mb-0"
           />
           <Reveal delay={0.3} y={10}>
             <Link href="/services" className="hit-area group mt-8 inline-flex items-center gap-2 text-[14px] font-medium text-ink">
-              Full list
+              {copy.homeServicesLink}
               <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">→</span>
             </Link>
           </Reveal>
@@ -99,25 +105,30 @@ export function AboutBlock() {
   const portfolio = useSalonStore((s) => s.portfolio);
   const slides = useSalonStore((s) => s.settings.hero.slides);
   const modules = useSalonStore((s) => s.settings.modules);
+  const copy = useCopy();
 
-  // Two photos for the parallax pair: different categories when possible.
+  // Two photos for the parallax pair: the admin's picks, else different portfolio categories.
   const pair = useMemo(() => {
+    const chosen = about.photos.filter(Boolean).map((src) => ({ src, alt: "", category: "" }));
+    if (chosen.length) return chosen.slice(0, 2);
     const pool = portfolio.length ? portfolio : slides.map((s) => ({ src: s.src, alt: s.alt, category: s.label }));
     const a = pool.find((p) => /hair/i.test(p.category)) ?? pool[0];
     const b = pool.find((p) => p !== a && /make/i.test(p.category)) ?? pool.find((p) => p !== a) ?? a;
     return [a, b].filter(Boolean);
-  }, [portfolio, slides]);
+  }, [about.photos, portfolio, slides]);
 
   return (
     <Section className="hairline-t overflow-hidden">
       <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-6">
-          <Reveal y={10}>
-            <p className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.22em] text-accent">About</p>
-          </Reveal>
+          {copy.homeAboutLabel && (
+            <Reveal y={10}>
+              <p className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.22em] text-accent">{copy.homeAboutLabel}</p>
+            </Reveal>
+          )}
           <SplitWords as="h2" inView text={about.heading} className="font-display text-display-lg text-balance text-ink" />
           <Reveal delay={0.25}>
-            <p className="mt-6 text-[17px] leading-[1.65] text-ink/85">{about.body}</p>
+            <p className="mt-6 whitespace-pre-line text-[17px] leading-[1.65] text-ink/85">{about.body}</p>
           </Reveal>
           {modules.staff && staff.length > 0 && (
             <RevealGroup className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">
@@ -183,8 +194,9 @@ export function Avatar({ name, photo, size = 40 }: { name: string; photo: string
 export function OffersBand() {
   const offers = useSalonStore((s) => s.offers);
   const modules = useSalonStore((s) => s.settings.modules);
+  const copy = useCopy();
   const today = todayISO();
-  const live = offers.filter((o) => o.active && o.until >= today);
+  const live = offers.filter((o) => o.active && (!o.until || o.until >= today));
   if (!modules.offers || live.length === 0) return null;
   const first = live[0];
   return (
@@ -194,11 +206,12 @@ export function OffersBand() {
           <div>
             <p className="font-script text-script-md text-balance text-ink">{first.title}</p>
             <p className="mt-1 text-[15px] text-muted">
-              {first.detail} Until {formatDateShort(first.until)}.
+              {first.detail}
+              {first.until && copy.homeOffersUntil && ` ${fill(copy.homeOffersUntil, { date: formatDateShort(first.until) })}`}
             </p>
           </div>
           <ButtonLink href="/offers" variant="secondary" className="self-start md:self-auto">
-            {live.length > 1 ? `All ${live.length} offers` : "Details"}
+            {live.length > 1 ? fill(copy.homeOffersMore, { count: live.length }) : copy.homeOffersOne}
           </ButtonLink>
         </div>
       </Reveal>
@@ -209,17 +222,22 @@ export function OffersBand() {
 export function ReviewsPreview() {
   const reviews = useSalonStore((s) => s.reviews);
   const modules = useSalonStore((s) => s.settings.modules);
+  const copy = useCopy();
   if (!modules.reviews || reviews.length === 0) return null;
   const picks = reviews.slice(0, 3);
   return (
     <Section className="hairline-t">
-      <SectionHeading label="Reviews" title="Kind words" more={{ href: "/reviews", label: `All ${reviews.length} reviews` }} />
+      <SectionHeading
+        label={copy.homeReviewsLabel}
+        title={copy.homeReviewsTitle}
+        more={{ href: "/reviews", label: fill(copy.homeReviewsLink, { count: reviews.length }) }}
+      />
       <RevealGroup stagger={0.12} className="grid gap-5 md:grid-cols-3 md:gap-6">
         {picks.map((r) => (
           <RevealItem key={r.id} y={28}>
             <Tilt max={6} className="h-full">
               <blockquote className="flex h-full flex-col justify-between gap-8 rounded-[18px] border border-line bg-surface p-7 md:p-8">
-                <p className="font-display text-[1.35rem] leading-[1.35] text-ink md:text-[1.5rem]">“{r.text}”</p>
+                <p className="font-display text-[length:calc(1.35rem*var(--display-scale))] leading-[1.35] text-ink md:text-[length:calc(1.5rem*var(--display-scale))]">“{r.text}”</p>
                 <footer className="flex items-center justify-between gap-3 text-[13.5px] text-muted">
                   <span>{r.author}</span>
                   <Stars value={r.rating} />
@@ -235,18 +253,23 @@ export function ReviewsPreview() {
 
 export function VisitBlock() {
   const settings = useSalonStore((s) => s.settings);
+  const copy = useCopy();
   const today = weekdayOf(todayISO());
   return (
     <Section id="visit" className="hairline-t scroll-mt-14">
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-5">
-          <SectionHeading label="Find us" title="Visit" className="mb-6 md:mb-6" />
+          <SectionHeading label={copy.homeVisitLabel} title={copy.homeVisitTitle} className="mb-6 md:mb-6" />
           <Reveal delay={0.15}>
             <address className="flex flex-col gap-4 not-italic">
               <p className="text-[17px] leading-[1.5] text-ink">{settings.contact.address}</p>
               <p className="flex flex-col gap-1 text-[15.5px] text-muted">
-                <a href={telHref(settings.contact.phone)} className="tabular w-fit hover:text-ink">{formatPhone(settings.contact.phone)}</a>
-                <a href={`mailto:${settings.contact.email}`} className="w-fit hover:text-ink">{settings.contact.email}</a>
+                {settings.contact.phone && (
+                  <a href={telHref(settings.contact.phone)} className="tabular w-fit hover:text-ink">{formatPhone(settings.contact.phone)}</a>
+                )}
+                {settings.contact.email && (
+                  <a href={`mailto:${settings.contact.email}`} className="w-fit hover:text-ink">{settings.contact.email}</a>
+                )}
               </p>
               {settings.contact.mapUrl && (
                 <a
@@ -255,14 +278,14 @@ export function VisitBlock() {
                   rel="noreferrer noopener"
                   className="hit-area group inline-flex w-fit items-center gap-2 text-[14px] font-medium text-ink"
                 >
-                  Open in maps
+                  {copy.homeVisitMaps}
                   <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">→</span>
                 </a>
               )}
             </address>
             {settings.modules.booking && (
               <ButtonLink href="/book" className="mt-9">
-                Book a time
+                {copy.homeVisitBook}
               </ButtonLink>
             )}
           </Reveal>

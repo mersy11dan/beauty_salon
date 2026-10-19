@@ -9,18 +9,24 @@ import { OpsProvider } from "@/lib/ops-store";
 import { useSalonApi, useSalonStore } from "@/lib/store";
 import type { OpsSnapshot, Session } from "@/lib/types";
 
-export type OpsNavItem = { href: string; label: string; exact?: boolean };
+/** Items sharing a `group` sit under one heading in the wide sidebar. */
+export type OpsNavItem = { href: string; label: string; exact?: boolean; group?: string };
 
 const ADMIN_NAV: OpsNavItem[] = [
-  { href: "/admin", label: "Modules", exact: true },
-  { href: "/admin/brand", label: "Brand and colours" },
-  { href: "/admin/content", label: "Content and hours" },
-  { href: "/admin/services", label: "Services" },
-  { href: "/admin/team", label: "Team" },
-  { href: "/admin/portfolio", label: "Portfolio" },
-  { href: "/admin/reviews", label: "Reviews" },
-  { href: "/admin/offers", label: "Offers" },
-  { href: "/admin/access", label: "Access and data" },
+  { href: "/admin", label: "Site builder", exact: true },
+  { href: "/admin/brand", label: "Name and logo", group: "1 · Make it theirs" },
+  { href: "/admin/look", label: "Colours and fonts", group: "1 · Make it theirs" },
+  { href: "/admin/pages", label: "Pages", group: "1 · Make it theirs" },
+  { href: "/admin/content", label: "Homepage", group: "2 · Fill it in" },
+  { href: "/admin/services", label: "Services", group: "2 · Fill it in" },
+  { href: "/admin/team", label: "Team", group: "2 · Fill it in" },
+  { href: "/admin/portfolio", label: "Portfolio", group: "2 · Fill it in" },
+  { href: "/admin/reviews", label: "Reviews", group: "2 · Fill it in" },
+  { href: "/admin/offers", label: "Offers", group: "2 · Fill it in" },
+  { href: "/admin/contact", label: "Contact and hours", group: "2 · Fill it in" },
+  { href: "/admin/text", label: "Site text", group: "2 · Fill it in" },
+  { href: "/admin/launch", label: "Launch", group: "3 · Hand it over" },
+  { href: "/admin/access", label: "Access and data", group: "3 · Hand it over" },
 ];
 
 /** The desk and admin frame. The server layout has already checked the login before this renders. */
@@ -70,7 +76,10 @@ export function OpsShell({
           <div className="flex items-center justify-between px-5 py-4 lg:block lg:px-6 lg:py-6">
             <div>
               <p className="font-display text-[15px] uppercase tracking-[0.16em] text-ops-ink">{name}</p>
-              <p className="mt-0.5 text-[12px] text-ops-muted">{area}</p>
+              <p className="mt-0.5 flex items-center gap-2 text-[12px] text-ops-muted">
+                {area}
+                {area === "Admin" && <ModeChip />}
+              </p>
             </div>
             <div className="flex items-center gap-1 lg:hidden">
               <HeaderLinks session={session} signOut={signOut} compact />
@@ -78,10 +87,16 @@ export function OpsShell({
           </div>
           <nav aria-label={`${area} sections`} className="no-scrollbar overflow-x-auto px-3 pb-3 lg:flex-1 lg:px-3 lg:pb-0">
             <ul className="flex gap-1 lg:flex-col">
-              {nav.map((item) => {
+              {nav.map((item, i) => {
                 const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/");
+                const heading = item.group && item.group !== nav[i - 1]?.group ? item.group : null;
                 return (
                   <li key={item.href} className="shrink-0">
+                    {heading && (
+                      <p aria-hidden className="hidden px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-ops-muted/80 lg:block">
+                        {heading}
+                      </p>
+                    )}
                     <Link
                       href={item.href}
                       className={clsx(
@@ -107,6 +122,25 @@ export function OpsShell({
         {area === "Admin" && <SaveIndicator />}
       </div>
     </OpsProvider>
+  );
+}
+
+function ModeChip() {
+  const demoMode = useSalonStore((s) => s.demoMode);
+  return demoMode ? (
+    <span
+      title="The sample site you build client sites on. DEMO_MODE is on, so demo logins and Reset demo data are available."
+      className="rounded-full bg-ops-bg px-2 py-px text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ops-muted ring-1 ring-ops-line"
+    >
+      Demo
+    </span>
+  ) : (
+    <span
+      title="A client's own site. Changes are what visitors see."
+      className="rounded-full bg-[#e3f1e6] px-2 py-px text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#1f5130]"
+    >
+      Live
+    </span>
   );
 }
 

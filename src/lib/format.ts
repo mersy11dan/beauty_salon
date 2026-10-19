@@ -1,9 +1,29 @@
 import type { PaymentMethod } from "./types";
 
-/** Ethiopian birr, written the way salon price boards in Addis do: "1,200 Br". */
-export function formatMoney(amount: number) {
-  const n = new Intl.NumberFormat("en-US", { maximumFractionDigits: amount % 1 === 0 ? 0 : 2 }).format(amount);
+/**
+ * Birr is written the way salon price boards in Addis do: "1,200 Br".
+ * Other ISO 4217 codes use the browser's currency format, and unknown codes fall back to birr.
+ */
+export function formatMoney(amount: number, currency = "ETB") {
+  const digits = amount % 1 === 0 ? 0 : 2;
+  if (currency !== "ETB") {
+    try {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: digits }).format(amount);
+    } catch {}
+  }
+  const n = new Intl.NumberFormat("en-US", { maximumFractionDigits: digits }).format(amount);
   return `${n}\u00a0Br`;
+}
+
+/** The code itself when the browser knows it as a currency, otherwise null. */
+export function validCurrency(code: unknown): string | null {
+  if (typeof code !== "string" || !/^[A-Z]{3}$/.test(code)) return null;
+  try {
+    new Intl.NumberFormat("en", { style: "currency", currency: code });
+    return code;
+  } catch {
+    return null;
+  }
 }
 
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [

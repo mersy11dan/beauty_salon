@@ -7,8 +7,9 @@ import { PaymentForm } from "@/components/ops/payment-form";
 import { PaidBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateShort, isSameWeek } from "@/lib/dates";
-import { formatMoney, METHOD_LABEL } from "@/lib/format";
+import { METHOD_LABEL } from "@/lib/format";
 import { useOps } from "@/lib/ops-store";
+import { useMoney } from "@/lib/site-hooks";
 import { useSalonStore, useSalonToday } from "@/lib/store";
 
 export default function LedgerPage() {
@@ -18,6 +19,7 @@ export default function LedgerPage() {
   const removePayment = useOps((s) => s.removePayment);
   const [adding, setAdding] = useState(false);
   const today = useSalonToday();
+  const formatMoney = useMoney();
 
   const totals = useMemo(() => {
     const paid = payments.filter((p) => p.status === "paid");

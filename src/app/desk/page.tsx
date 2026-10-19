@@ -7,10 +7,10 @@ import { Card, OpsTitle } from "@/components/ops/ops-shell";
 import { PaymentForm } from "@/components/ops/payment-form";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { addDays, formatDateLong, formatDateShort, formatTime, hhmmOf, minutesOf } from "@/lib/dates";
-import { formatMoney } from "@/lib/format";
+import { addDays, formatDateLong, formatDateShort, hhmmOf, minutesOf } from "@/lib/dates";
 import { useOps } from "@/lib/ops-store";
 import { formatPhone, telHref } from "@/lib/phone";
+import { useMoney, useTime } from "@/lib/site-hooks";
 import { useSalonStore, useSalonToday } from "@/lib/store";
 import type { Appointment } from "@/lib/types";
 
@@ -106,6 +106,8 @@ function AppointmentRow({ apt, showDate }: { apt: Appointment; showDate?: boolea
   const paid = useOps((s) => s.payments.some((p) => p.appointmentId === apt.id));
   const setStatus = useOps((s) => s.setAppointmentStatus);
   const [paying, setPaying] = useState(false);
+  const formatMoney = useMoney();
+  const formatTime = useTime();
 
   const end = hhmmOf(minutesOf(apt.time) + apt.durationMin);
   const faded = apt.status === "cancelled";

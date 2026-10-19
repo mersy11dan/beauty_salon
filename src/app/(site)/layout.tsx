@@ -10,7 +10,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const settings = useSettings();
   return (
     <SmoothScroll>
-      <div style={themeStyle(settings.theme)} className="flex min-h-dvh flex-col bg-bg text-ink">
+      <div style={themeStyle(settings.theme, settings.fonts)} className="flex min-h-dvh flex-col bg-bg text-ink">
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />

@@ -19,7 +19,9 @@ async function referencedUrls() {
   const urls = new Set<string>();
   for (const { data } of settingsRows) {
     if (data.logoUrl) urls.add(data.logoUrl);
+    if (data.faviconUrl) urls.add(data.faviconUrl);
     for (const s of data.hero?.slides ?? []) if (s.src) urls.add(s.src);
+    for (const src of data.about?.photos ?? []) if (src) urls.add(src);
   }
   for (const r of [...staffRows, ...portfolioRows]) if (r.url) urls.add(r.url);
   return urls;

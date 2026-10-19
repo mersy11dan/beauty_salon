@@ -1,8 +1,9 @@
 "use server";
 
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
-import type { ActionResult, Offer, PortfolioItem, Review, Service, Settings, StaffMember } from "@/lib/types";
+import { z } from "zod";
+import type { ActionResult, ContentList, Offer, PortfolioItem, Review, Service, Settings, SiteContent, StaffMember } from "@/lib/types";
 import { db } from "../db";
 import { offers, portfolioItems, reviews, services, siteSettings, staff, staffServices } from "../db/schema";
 import {
@@ -12,9 +13,10 @@ import {
   reviewSchema,
   serviceSchema,
   settingsSchema,
+  siteSchema,
   staffMemberSchema,
 } from "../validation";
-import { asStaff, ok, parseInput, publicContentChanged } from "./util";
+import { asStaff, fail, ok, parseInput, publicContentChanged } from "./util";
 
 type Result<T> = Promise<ActionResult<T>>;
 
@@ -115,7 +117,8 @@ export async function saveReview(input: Review): Result<Review> {
   return adminEdit("saveReview", async () => {
     const parsed = parseInput(reviewSchema, input);
     if ("failure" in parsed) return parsed.failure;
-    const { id, ...row } = parsed.data;
+    const { id, ...fields } = parsed.data;
+    const row = { ...fields, date: fields.date || null };
     await db
       .insert(reviews)
       .values({ id, ...row, position: nextPosition(reviews, reviews.position) })
@@ -132,7 +135,8 @@ export async function saveOffer(input: Offer): Result<Offer> {
   return adminEdit("saveOffer", async () => {
     const parsed = parseInput(offerSchema, input);
     if ("failure" in parsed) return parsed.failure;
-    const { id, ...row } = parsed.data;
+    const { id, ...fields } = parsed.data;
+    const row = { ...fields, until: fields.until || null };
     await db
       .insert(offers)
       .values({ id, ...row, position: nextPosition(offers, offers.position) })
@@ -143,4 +147,86 @@ export async function saveOffer(input: Offer): Result<Offer> {
 
 export async function deleteOffer(id: string): Result<null> {
   return removeBy("deleteOffer", offers, id);
+}
+
+const LIST_TABLES = {
+  services,
+  staff,
+  portfolio: portfolioItems,
+  reviews,
+  offers,
+} satisfies Record<ContentList, PgTable & { id: PgColumn; position: PgColumn }>;
+
+/** Saves the order the admin arranged a list in. Ids missing from `ids` keep their place after the listed ones. */
+export async function reorderContent(list: ContentList, ids: string[]): Result<null> {
+  return adminEdit("reorderContent", async () => {
+    const parsed = parseInput(z.object({ list: z.enum(Object.keys(LIST_TABLES) as [ContentList]), ids: z.array(entityId).max(1000) }), { list, ids });
+    if ("failure" in parsed) return parsed.failure;
+    const table = LIST_TABLES[parsed.data.list];
+    const order = [...new Set(parsed.data.ids)];
+    if (order.length === 0) return ok(null);
+    const cases = sql.join(
+      order.map((id, i) => sql`when ${id} then ${i}::int`),
+      sql` `,
+    );
+    await db.execute(sql`
+      update ${table} set ${sql.identifier(table.position.name)} = case ${table.id} ${cases}
+        else ${order.length}::int + ${table.position} end
+    `);
+    return ok(null);
+  });
+}
+
+/**
+ * Replaces the whole site (settings and every list) with a loaded site file.
+ * Rows with the same id are updated in place, so bookings keep pointing at the same people.
+ */
+export async function importSite(input: SiteContent): Result<SiteContent> {
+  return adminEdit("importSite", async () => {
+    const parsed = siteSchema.safeParse(input);
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      const where = issue?.path.join(" › ") ?? "";
+      return fail(`This site file has a problem${where ? ` at ${where}` : ""}: ${issue?.message ?? "it could not be read."}`);
+    }
+    const site = parsed.data;
+    await db.transaction(async (tx) => {
+      const keep = async (table: PgTable & { id: PgColumn }, ids: string[]) => {
+        await tx.delete(table).where(ids.length ? notInArray(table.id, ids) : sql`true`);
+      };
+      await keep(offers, site.offers.map((o) => o.id));
+      await keep(reviews, site.reviews.map((r) => r.id));
+      await keep(portfolioItems, site.portfolio.map((p) => p.id));
+      await keep(staff, site.staff.map((m) => m.id));
+      await keep(services, site.services.map((s) => s.id));
+
+      for (const [position, { id, ...s }] of site.services.entries()) {
+        const row = { ...s, note: s.note ?? null, position };
+        await tx.insert(services).values({ id, ...row }).onConflictDoUpdate({ target: services.id, set: row });
+      }
+      const serviceIds = new Set(site.services.map((s) => s.id));
+      await tx.delete(staffServices);
+      for (const [position, m] of site.staff.entries()) {
+        const row = { name: m.name, role: m.role, bio: m.bio, photoUrl: m.photo, position };
+        await tx.insert(staff).values({ id: m.id, ...row }).onConflictDoUpdate({ target: staff.id, set: row });
+        const links = [...new Set(m.serviceIds)].filter((s) => serviceIds.has(s)).map((serviceId) => ({ staffId: m.id, serviceId }));
+        if (links.length) await tx.insert(staffServices).values(links);
+      }
+      for (const [position, { id, ...p }] of site.portfolio.entries()) {
+        const row = { ...p, position };
+        await tx.insert(portfolioItems).values({ id, ...row }).onConflictDoUpdate({ target: portfolioItems.id, set: row });
+      }
+      for (const [position, { id, ...r }] of site.reviews.entries()) {
+        const row = { ...r, date: r.date || null, position };
+        await tx.insert(reviews).values({ id, ...row }).onConflictDoUpdate({ target: reviews.id, set: row });
+      }
+      for (const [position, { id, ...o }] of site.offers.entries()) {
+        const row = { ...o, until: o.until || null, position };
+        await tx.insert(offers).values({ id, ...row }).onConflictDoUpdate({ target: offers.id, set: row });
+      }
+      const data = site.settings as Settings;
+      await tx.insert(siteSettings).values({ id: 1, data }).onConflictDoUpdate({ target: siteSettings.id, set: { data } });
+    });
+    return ok(site as SiteContent);
+  });
 }

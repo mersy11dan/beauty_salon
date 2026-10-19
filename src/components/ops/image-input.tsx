@@ -14,9 +14,9 @@ function toBlob(canvas: HTMLCanvasElement, type: string) {
  * Downsizes on a canvas and re-encodes as WebP (JPEG or PNG where WebP encoding isn't supported).
  * Re-encoding also drops EXIF data, so a phone photo never publishes where it was taken.
  */
-async function prepare(file: File): Promise<Blob> {
+async function prepare(file: File, maxEdge = MAX_EDGE): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(bitmap.width * scale));
   canvas.height = Math.max(1, Math.round(bitmap.height * scale));
@@ -32,7 +32,8 @@ async function prepare(file: File): Promise<Blob> {
   return fallback;
 }
 
-async function upload(blob: Blob): Promise<string> {
+/** Sends a photo to /api/uploads and returns its public URL. Throws a readable message on failure. */
+export async function uploadPhoto(blob: Blob): Promise<string> {
   const form = new FormData();
   form.set("file", blob, `photo.${blob.type.split("/")[1] ?? "img"}`);
   let res: Response;
@@ -52,6 +53,7 @@ export function ImageInput({
   onChange,
   onBusyChange,
   aspect = "aspect-[4/3]",
+  maxSize,
 }: {
   id?: string;
   value: string | null;
@@ -59,6 +61,8 @@ export function ImageInput({
   /** True while a photo is uploading, so the surrounding form can hold its Save button. */
   onBusyChange?: (busy: boolean) => void;
   aspect?: string;
+  /** Longest edge in pixels after resizing. */
+  maxSize?: number;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -72,11 +76,11 @@ export function ImageInput({
     try {
       let blob: Blob;
       try {
-        blob = await prepare(file);
+        blob = await prepare(file, maxSize);
       } catch {
         throw new Error("That file could not be read. Try a JPG or PNG.");
       }
-      onChange(await upload(blob));
+      onChange(await uploadPhoto(blob));
     } catch (err) {
       setError(err instanceof Error ? err.message : "The photo couldn't be saved. Try again.");
     } finally {

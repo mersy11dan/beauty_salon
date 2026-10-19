@@ -23,6 +23,15 @@ export type Theme = {
   surface: string;
 };
 
+/** Catalog ids from `lib/fonts.ts`. */
+export type FontChoice = {
+  display: string;
+  script: string;
+  body: string;
+};
+
+export type Clock = "12h" | "24h";
+
 export type Socials = {
   facebook: string;
   instagram: string;
@@ -41,9 +50,12 @@ export type Settings = {
   name: string;
   tagline: string;
   logoUrl: string | null;
+  /** Browser tab icon. Falls back to the default icon when empty. */
+  faviconUrl: string | null;
   /** IANA zone, e.g. "Africa/Addis_Ababa". Booking times and "today" are read in this zone. */
   timeZone: string;
   theme: Theme;
+  fonts: FontChoice;
   modules: Modules;
   hero: {
     headline: string;
@@ -53,7 +65,23 @@ export type Settings = {
   about: {
     heading: string;
     body: string;
+    /** Up to two photos beside the about text. Empty picks from the portfolio. */
+    photos: string[];
   };
+  /** Only the phrases the admin changed; see `lib/copy.ts`. */
+  copy: Record<string, string>;
+  seo: {
+    /** Browser tab and search result title. Blank uses the salon name. */
+    title: string;
+    description: string;
+  };
+  /** ISO 4217 code, e.g. "USD". */
+  currency: string;
+  clock: Clock;
+  /** Show the demo logins on the sign-in pages. Turn off before handing a site over. */
+  demoHints: boolean;
+  /** Builder steps the admin ticked by hand. */
+  checklist: Record<string, boolean>;
   contact: {
     phone: string;
     email: string;
@@ -183,6 +211,12 @@ export type OpsData = {
   appointments: Appointment[];
   payments: Payment[];
 };
+
+/** Everything that makes up one salon's website, without bookings, payments or accounts. */
+export type SiteContent = PublicData;
+
+/** The content lists that can be reordered and edited one item at a time. */
+export type ContentList = Exclude<keyof SiteContent, "settings">;
 
 /** OpsData plus the first day it fully covers. Earlier days are fetched one at a time. */
 export type OpsSnapshot = OpsData & { since: string };

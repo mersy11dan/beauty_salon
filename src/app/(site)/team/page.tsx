@@ -4,16 +4,19 @@ import { Avatar } from "@/components/site/home-sections";
 import { ModuleGate } from "@/components/site/module-gate";
 import { PageTitle } from "@/components/site/section";
 import { ButtonLink } from "@/components/ui/button";
+import { fill } from "@/lib/copy";
+import { useCopy } from "@/lib/site-hooks";
 import { useSalonStore } from "@/lib/store";
 
 export default function TeamPage() {
   const staff = useSalonStore((s) => s.staff);
   const services = useSalonStore((s) => s.services);
   const modules = useSalonStore((s) => s.settings.modules);
+  const copy = useCopy();
 
   return (
     <ModuleGate module="staff">
-      <PageTitle title="The team" intro="Whoever you book with sees you through from start to finish." />
+      <PageTitle title={copy.teamTitle} intro={copy.teamIntro} />
       <div className="mx-auto max-w-6xl px-6 pb-20 md:pb-28">
         <ul className="flex flex-col">
           {staff.map((m) => {
@@ -28,16 +31,16 @@ export default function TeamPage() {
                   </div>
                 </div>
                 <div className="md:col-span-8 md:col-start-6">
-                  <p className="max-w-[56ch] text-[16.5px] leading-[1.6] text-ink/85">{m.bio}</p>
+                  <p className="max-w-[56ch] whitespace-pre-line text-[16.5px] leading-[1.6] text-ink/85">{m.bio}</p>
                   {does.length > 0 && (
                     <p className="mt-5 text-[14px] text-muted">
-                      <span className="text-ink">Does: </span>
+                      <span className="text-ink">{copy.teamDoes} </span>
                       {does.join(", ")}
                     </p>
                   )}
                   {modules.booking && (
                     <ButtonLink href={`/book?staff=${m.id}`} variant="secondary" size="sm" className="mt-6">
-                      Book with {m.name.split(" ")[0]}
+                      {fill(copy.teamBook, { name: m.name.split(" ")[0] })}
                     </ButtonLink>
                   )}
                 </div>
@@ -45,7 +48,7 @@ export default function TeamPage() {
             );
           })}
         </ul>
-        {staff.length === 0 && <p className="text-[16px] text-muted">No team members have been added yet.</p>}
+        {staff.length === 0 && <p className="text-[16px] text-muted">{copy.teamEmpty}</p>}
       </div>
     </ModuleGate>
   );

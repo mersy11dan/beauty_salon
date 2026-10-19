@@ -17,6 +17,7 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from "rea
 import { CURSOR_LABEL_QUERY, CursorLabel } from "@/components/motion/cursor-label";
 import { EASE_OUT_EXPO } from "@/components/motion/reveal";
 import { FINE_POINTER, MOTION_OK, useMediaQuery } from "@/components/motion/use-media";
+import { useCopy } from "@/lib/site-hooks";
 import type { PortfolioItem } from "@/lib/types";
 import { SectionHeading } from "./section";
 
@@ -35,6 +36,7 @@ const MotionLink = motion.create(Link);
  * screens each one turns in 3D as it passes the centre.
  */
 export function GalleryScroll({ items }: { items: PortfolioItem[] }) {
+  const copy = useCopy();
   const reduce = useReducedMotion();
   const depth = useMediaQuery(`(min-width: 1024px) and ${FINE_POINTER} and ${MOTION_OK}`);
   const dragCursor = useMediaQuery(CURSOR_LABEL_QUERY);
@@ -83,9 +85,9 @@ export function GalleryScroll({ items }: { items: PortfolioItem[] }) {
     <section className="hairline-t py-16 md:py-24">
       <div className="mx-auto max-w-6xl px-6">
         <SectionHeading
-          label="Portfolio"
-          title="Recent work"
-          more={{ href: "/portfolio", label: "See everything" }}
+          label={copy.homePortfolioLabel}
+          title={copy.homePortfolioTitle}
+          more={{ href: "/portfolio", label: copy.homePortfolioLink }}
           className="mb-4 md:mb-6"
         />
       </div>

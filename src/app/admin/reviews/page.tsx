@@ -11,10 +11,11 @@ export default function AdminReviewsPage() {
   const reviews = useSalonStore((s) => s.reviews);
   const upsert = useSalonStore((s) => s.upsertReview);
   const remove = useSalonStore((s) => s.removeReview);
+  const move = useSalonStore((s) => s.moveItem);
 
   return (
     <>
-      <OpsTitle title="Reviews" intro="Quotes from clients. The first two appear on the homepage." />
+      <OpsTitle title="Reviews" intro="Quotes from clients, in the order shown here. The first three also appear on the homepage." />
       <EntityEditor<Review>
         items={reviews}
         fields={[
@@ -26,13 +27,14 @@ export default function AdminReviewsPage() {
             options: [5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${n} star${n === 1 ? "" : "s"}` })),
           },
           { key: "text", label: "Quote", type: "textarea", required: true, span: 2 },
-          { key: "date", label: "Date", type: "date" },
+          { key: "date", label: "Date", type: "date", hint: "Optional. Leave blank to hide the date." },
         ]}
         blank={() => ({ id: uid("rv"), author: "", rating: 5, text: "", date: todayISO() })}
         title={(r) => `${r.author} · ${r.rating}★`}
-        subtitle={(r) => `${formatDateShort(r.date)} · ${r.text.slice(0, 70)}${r.text.length > 70 ? "…" : ""}`}
+        subtitle={(r) => `${r.date ? `${formatDateShort(r.date)} · ` : ""}${r.text.slice(0, 70)}${r.text.length > 70 ? "…" : ""}`}
         onSave={(r) => upsert({ ...r, rating: Number(r.rating) as Review["rating"] })}
         onRemove={remove}
+        onMove={(id, dir) => move("reviews", id, dir)}
         addLabel="Add a review"
       />
     </>

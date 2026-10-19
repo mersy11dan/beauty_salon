@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { PAYMENT_METHODS } from "@/lib/format";
 import { useOps } from "@/lib/ops-store";
-import { useSalonToday } from "@/lib/store";
+import { useSalonStore, useSalonToday } from "@/lib/store";
 import type { PaymentMethod, PaymentStatus } from "@/lib/types";
 
 export function PaymentForm({
@@ -19,6 +19,7 @@ export function PaymentForm({
 }) {
   const addPayment = useOps((s) => s.addPayment);
   const today = useSalonToday();
+  const currency = useSalonStore((s) => s.settings.currency);
   const [amount, setAmount] = useState(initial?.amount?.toString() ?? "");
   const [label, setLabel] = useState(initial?.label ?? "");
   const [method, setMethod] = useState<PaymentMethod>("cash");
@@ -62,7 +63,7 @@ export function PaymentForm({
       <Field label="What for" htmlFor="pay-label" className="sm:col-span-2 lg:col-span-1">
         <Input id="pay-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Gel manicure · Mahlet Girma" />
       </Field>
-      <Field label="Amount (Br)" htmlFor="pay-amount">
+      <Field label={`Amount (${currency === "ETB" ? "Br" : currency})`} htmlFor="pay-amount">
         <Input id="pay-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
       </Field>
       <Field label="Method" htmlFor="pay-method">

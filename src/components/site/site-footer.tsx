@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { fill } from "@/lib/copy";
 import { formatPhone, telHref } from "@/lib/phone";
+import { useCopy } from "@/lib/site-hooks";
 import { useSettings } from "@/lib/store";
 import { SocialRow } from "./social-icons";
 
 export function SiteFooter() {
   const settings = useSettings();
-  const year = new Date().getFullYear();
+  const copy = useCopy();
+  const line = fill(copy.footerLine, {
+    year: new Date().getFullYear(),
+    name: settings.name,
+    address: settings.contact.address,
+  });
 
   return (
     <footer className="mt-auto">
@@ -16,16 +23,16 @@ export function SiteFooter() {
           <SocialRow socials={settings.socials} />
         </div>
         <div className="hairline-t flex flex-col items-center gap-3 py-7 text-center text-[12.5px] text-muted md:flex-row md:justify-between md:text-left">
-          <p>
-            © {year} {settings.name}. {settings.contact.address}.
-          </p>
+          <p>{line}</p>
           <p className="flex items-center gap-5">
             <a href={telHref(settings.contact.phone)} className="hit-area tabular hover:text-ink">
               {formatPhone(settings.contact.phone)}
             </a>
-            <Link href="/login" className="hit-area hover:text-ink">
-              Staff sign in
-            </Link>
+            {copy.footerStaffLink && (
+              <Link href="/login" className="hit-area hover:text-ink">
+                {copy.footerStaffLink}
+              </Link>
+            )}
           </p>
         </div>
       </div>

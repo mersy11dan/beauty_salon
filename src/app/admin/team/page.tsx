@@ -11,6 +11,7 @@ export default function AdminTeamPage() {
   const services = useSalonStore((s) => s.services);
   const upsert = useSalonStore((s) => s.upsertStaff);
   const remove = useSalonStore((s) => s.removeStaff);
+  const move = useSalonStore((s) => s.moveItem);
 
   return (
     <>
@@ -37,6 +38,7 @@ export default function AdminTeamPage() {
         thumb={(m) => m.photo}
         onSave={upsert}
         onRemove={remove}
+        onMove={(id, dir) => move("staff", id, dir)}
         addLabel="Add a person"
       />
     </>

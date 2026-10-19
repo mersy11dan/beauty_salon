@@ -3,18 +3,21 @@
 import { ModuleGate } from "@/components/site/module-gate";
 import { PageTitle } from "@/components/site/section";
 import { ButtonLink } from "@/components/ui/button";
+import { fill } from "@/lib/copy";
 import { formatDateLong, todayISO } from "@/lib/dates";
+import { useCopy } from "@/lib/site-hooks";
 import { useSalonStore } from "@/lib/store";
 
 export default function OffersPage() {
   const offers = useSalonStore((s) => s.offers);
   const modules = useSalonStore((s) => s.settings.modules);
+  const copy = useCopy();
   const today = todayISO();
-  const live = offers.filter((o) => o.active && o.until >= today);
+  const live = offers.filter((o) => o.active && (!o.until || o.until >= today));
 
   return (
     <ModuleGate module="offers">
-      <PageTitle title="Offers" intro="Mention the offer when you arrive. They cannot be combined with each other." />
+      <PageTitle title={copy.offersTitle} intro={copy.offersIntro} />
       <div className="mx-auto max-w-6xl px-6 pb-20 md:pb-28">
         <ul className="flex flex-col">
           {live.map((o) => (
@@ -22,17 +25,17 @@ export default function OffersPage() {
               <h2 className="font-display text-display-md text-balance text-ink md:col-span-6">{o.title}</h2>
               <div className="md:col-span-5 md:col-start-8">
                 <p className="text-[16px] leading-[1.6] text-ink/85">{o.detail}</p>
-                <p className="mt-3 text-[13.5px] text-muted">Valid until {formatDateLong(o.until)}</p>
+                {o.until && <p className="mt-3 text-[13.5px] text-muted">{fill(copy.offersValid, { date: formatDateLong(o.until) })}</p>}
               </div>
             </li>
           ))}
         </ul>
         {live.length === 0 && (
-          <p className="hairline-t pt-8 text-[16px] text-muted">There are no offers running right now.</p>
+          <p className="hairline-t pt-8 text-[16px] text-muted">{copy.offersEmpty}</p>
         )}
         {modules.booking && live.length > 0 && (
           <ButtonLink href="/book" size="lg" className="mt-14">
-            Book a time
+            {copy.offersBook}
           </ButtonLink>
         )}
       </div>
