@@ -37,6 +37,21 @@ async function inline(src: string) {
   }
 }
 
+const CHUNK_BYTES = 256 * 1024;
+
+/** Vercel refuses buffered function responses over 4.5 MB; streamed ones have no cap, and inlined photos add up fast. */
+function streamText(text: string) {
+  const bytes = new TextEncoder().encode(text);
+  let offset = 0;
+  return new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (offset >= bytes.length) return controller.close();
+      controller.enqueue(bytes.subarray(offset, offset + CHUNK_BYTES));
+      offset += CHUNK_BYTES;
+    },
+  });
+}
+
 /** The Launch page's "Save site file": every page, photo, colour and phrase, without bookings or accounts. */
 export async function GET() {
   const session = await getStaffSession();
@@ -45,7 +60,7 @@ export async function GET() {
   try {
     const content = await mapImages(await getPublicData(), inline);
     const pkg = makePackage(content);
-    return new Response(JSON.stringify(pkg), {
+    return new Response(streamText(JSON.stringify(pkg)), {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
         "Content-Disposition": `attachment; filename="${packageFileName(pkg.name)}"`,
