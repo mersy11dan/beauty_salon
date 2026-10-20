@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { EASE_OUT_EXPO, Reveal } from "@/components/motion/reveal";
 import { SplitWords } from "@/components/motion/split-text";
 import { Tilt } from "@/components/motion/tilt";
+import { HeroSlideMedia, heroFxDuration } from "@/components/site/hero-fx";
 import { isDarkTheme } from "@/components/site/theme-vars";
 import { ButtonLink } from "@/components/ui/button";
 import { telHref } from "@/lib/phone";
@@ -24,13 +25,14 @@ export function Hero() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
+  const current = slides[index] ?? slides[0];
+  const duration = heroFxDuration(current?.src, INTERVAL_MS);
+
   useEffect(() => {
     if (slides.length < 2 || paused || reduce) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % slides.length), INTERVAL_MS);
-    return () => clearInterval(t);
-  }, [slides.length, paused, reduce]);
-
-  const current = slides[index] ?? slides[0];
+    const t = setTimeout(() => setIndex((i) => (i + 1) % slides.length), duration);
+    return () => clearTimeout(t);
+  }, [index, duration, slides.length, paused, reduce]);
 
   const cta = modules.booking
     ? { href: "/book", label: copy.heroBook }
@@ -140,20 +142,7 @@ export function Hero() {
               transition={{ duration: 7, ease: "easeInOut", repeat: Infinity }}
             >
               {slides.map((s, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={s.id}
-                  src={s.src}
-                  alt={i === index ? s.alt : ""}
-                  aria-hidden={i !== index}
-                  draggable={false}
-                  className={clsx(
-                    "photo-fade absolute inset-0 h-full w-full select-none object-cover object-[50%_28%] transition-[opacity,transform] duration-[1600ms] ease-out-quart",
-                    // Multiply melts a white studio backdrop into a light page; on a dark page it would black the photo out.
-                    !dark && "mix-blend-multiply",
-                    i === index ? "scale-100 opacity-100" : "scale-[1.03] opacity-0",
-                  )}
-                />
+                <HeroSlideMedia key={s.id} slide={s} active={i === index} dark={dark} accent={settings.theme.accent} />
               ))}
             </motion.div>
 
