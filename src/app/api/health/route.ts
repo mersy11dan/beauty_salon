@@ -4,7 +4,13 @@ import { db } from "@/server/db";
 import { noStoreJson } from "@/server/http";
 import { storage } from "@/server/storage";
 
-const MIGRATIONS = journal.entries.length;
+/** Same rule as the drizzle migrator: a migration is applied once the newest recorded one is at least as new. */
+async function pendingMigrations() {
+  const [{ name }] = await db.execute<{ name: string | null }>(sql`select to_regclass('drizzle.__drizzle_migrations')::text as name`);
+  if (!name) return journal.entries.length;
+  const [{ latest }] = await db.execute<{ latest: string | null }>(sql`select max(created_at)::text as latest from drizzle.__drizzle_migrations`);
+  return journal.entries.filter((m) => m.when > Number(latest ?? 0)).length;
+}
 
 /**
  * For uptime monitors: 200 only when the site can serve pages and someone can sign in to the admin.
@@ -20,31 +26,30 @@ export async function GET() {
   }
 
   const started = Date.now();
-  let present: { migrations: boolean; users: boolean };
+  let pending: number;
   try {
-    const [row] = await db.execute<{ migrations: boolean; users: boolean }>(sql`
-      select to_regclass('drizzle.__drizzle_migrations') is not null as migrations,
-             to_regclass('public.staff_users') is not null as users
-    `);
-    present = row;
+    pending = await pendingMigrations();
   } catch (err) {
     console.error("[health] database check failed:", err);
     return noStoreJson({ ok: false, database: "down" }, { status: 503 });
   }
-  const up = { database: "up", latencyMs: Date.now() - started, storage: storageName };
-
-  // "missing" until `npm run db:migrate` has run; "outdated" when this deploy ships a migration the database hasn't run.
-  if (!present.migrations || !present.users) return noStoreJson({ ok: false, ...up, tables: "missing" }, { status: 503 });
-  try {
-    const [row] = await db.execute<{ applied: number; admin: boolean }>(sql`
-      select (select count(*)::int from drizzle.__drizzle_migrations) as applied,
-             exists (select 1 from staff_users where role = 'admin') as admin
-    `);
-    if (row.applied < MIGRATIONS) return noStoreJson({ ok: false, ...up, tables: "outdated" }, { status: 503 });
-    if (!row.admin) return noStoreJson({ ok: false, ...up, tables: "ready", admin: "missing" }, { status: 503 });
-    return noStoreJson({ ok: true, ...up, tables: "ready", admin: "ready" });
-  } catch (err) {
-    console.error("[health] table check failed:", err);
-    return noStoreJson({ ok: false, ...up, tables: "unreadable" }, { status: 503 });
+  if (pending > 0) {
+    console.error(`[health] ${pending} of ${journal.entries.length} migrations are not applied. Run \`npm run db:migrate\` against this DATABASE_URL.`);
+    return noStoreJson({ ok: false, database: "up", pendingMigrations: pending }, { status: 503 });
   }
+
+  let admin: boolean;
+  try {
+    const [row] = await db.execute<{ admin: boolean }>(sql`select exists (select 1 from staff_users where role = 'admin') as admin`);
+    admin = row.admin;
+  } catch (err) {
+    console.error("[health] admin check failed:", err);
+    return noStoreJson({ ok: false, database: "up", pendingMigrations: 0, admin: "unreadable" }, { status: 503 });
+  }
+  const up = { database: "up", pendingMigrations: 0, latencyMs: Date.now() - started, storage: storageName };
+  if (!admin) {
+    console.error("[health] No admin login. Set ADMIN_EMAIL and ADMIN_PASSWORD, then run `npm run db:seed` against this DATABASE_URL (on Vercel, redeploy production).");
+    return noStoreJson({ ok: false, ...up, admin: "missing" }, { status: 503 });
+  }
+  return noStoreJson({ ok: true, ...up, admin: "ready" });
 }

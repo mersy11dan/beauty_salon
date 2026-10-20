@@ -280,15 +280,14 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 const ENV_VARS = [
-  { name: "DATABASE_URL", what: "The client's Neon database: the pooled connection string, whose host contains -pooler." },
+  { name: "DATABASE_URL", what: "Added by Vercel when you connect the Neon database. Check that it is listed." },
   { name: "CLOUDINARY_URL", what: "The client's Cloudinary API environment variable, starting with cloudinary://. Photos are stored there." },
   { name: "ADMIN_EMAIL", what: "The email you (or the client) will sign in to the admin with." },
   { name: "ADMIN_PASSWORD", what: "A long password, at least 8 characters. Different for every client." },
   { name: "ADMIN_NAME", what: "Optional. The name shown in the admin." },
   { name: "DEMO_MODE", what: "false. Demo logins and Reset demo data stay off on a live website." },
+  { name: "DATABASE_POOL_MAX", what: "3. Keeps the number of database connections low on Vercel." },
 ];
-
-const SETUP_COMMANDS = "npm run db:migrate\nnpm run db:seed";
 
 function Steps({ children }: { children: React.ReactNode }) {
   return <ol className="flex list-decimal flex-col gap-3.5 pl-5 text-[14px] leading-[1.55] text-ops-ink marker:text-ops-muted">{children}</ol>;
@@ -316,17 +315,28 @@ function DeployGuide() {
       </p>
       <Steps>
         <li>
-          Create a project for the client on <Ext href="https://neon.tech">neon.tech</Ext> and copy its <strong className="font-medium">pooled</strong>{" "}
-          connection string. Use a new project for every client, so no two clients ever share data.
+          Open <Ext href="https://vercel.com/new">vercel.com/new</Ext> and import this same GitHub repository again. Name the project after the
+          client, for example <Code>rose-studio</Code>. Do not deploy into the demo project. The first deploy stops with a message asking for a
+          database; that is expected.
+        </li>
+        <li>
+          In the new project, open <strong className="font-medium">Storage</strong>, create a <strong className="font-medium">Neon</strong>{" "}
+          Postgres database (the free plan is enough to start) in the region closest to the salon, and connect it to the project. Use a new
+          database for every client, so no two clients ever share data. Then, under <strong className="font-medium">Settings → Functions</strong>,
+          set the function region to the same place.
+        </li>
+        <li>
+          Under <strong className="font-medium">Settings → Build and Deployment</strong>, set{" "}
+          <strong className="font-medium">Ignored Build Step</strong> to <strong className="font-medium">Only build production</strong>. Every
+          client project uses this same repository, so otherwise each push to a test branch builds a preview for every client. Test changes on
+          the demo instead.
         </li>
         <li>
           Create a <Ext href="https://cloudinary.com">Cloudinary</Ext> account for the client and copy the{" "}
           <strong className="font-medium">API environment variable</strong> from <strong className="font-medium">Settings → API Keys</strong>.
         </li>
         <li>
-          Open <Ext href="https://vercel.com/new">vercel.com/new</Ext> and import this same GitHub repository again. Name the project after the
-          client, for example <Code>rose-studio</Code>. Do not deploy into the demo project. Under{" "}
-          <strong className="font-medium">Environment Variables</strong>, add:
+          In the project&apos;s <strong className="font-medium">Settings → Environment Variables</strong>, add:
           <div className="mt-2.5 overflow-hidden rounded-lg border border-ops-line">
             <table className="w-full text-[13px]">
               <tbody className="divide-y divide-ops-line">
@@ -344,19 +354,9 @@ function DeployGuide() {
           </div>
         </li>
         <li>
-          Create the tables and the admin login. On your computer, put the same values in <Code>.env.local</Code> in a copy of this repository
-          and run:
-          <div className="mt-2.5 flex items-start justify-between gap-2 rounded-lg bg-ops-bg px-3 py-2">
-            <pre className="font-mono text-[12.5px] leading-[1.6] text-ops-ink">{SETUP_COMMANDS}</pre>
-            <CopyButton text={SETUP_COMMANDS} label="commands" />
-          </div>
-          <span className="mt-1.5 block text-[13px] text-ops-muted">
-            This adds the sample salon as a starting point; the site file replaces it in the next step. It never adds the demo logins.
-          </span>
-        </li>
-        <li>
-          Deploy. If the project was deployed before you added the variables, open <strong className="font-medium">Deployments</strong> and
-          choose <strong className="font-medium">Redeploy</strong> so they take effect.
+          Open <strong className="font-medium">Deployments</strong> and choose <strong className="font-medium">Redeploy</strong> on the latest one.
+          This deploy creates the tables, the admin login and the sample salon as a starting point; the site file replaces the sample in the
+          next step. It never adds the demo logins.
         </li>
         <li>
           Open the new website&apos;s <Code>/login</Code> page and sign in with the ADMIN_EMAIL and ADMIN_PASSWORD you chose. The admin shows a
@@ -365,7 +365,7 @@ function DeployGuide() {
       </Steps>
       <p className="mt-4 rounded-lg bg-ops-bg px-4 py-3 text-[13px] text-ops-muted">
         Good to know: every client website runs the code on this repository&apos;s main branch, so a fix pushed there reaches all of them on their
-        next deploy. When a change adds a database migration, run <Code>npm run db:migrate</Code> against each client&apos;s database. Client
+        next deploy, and each deploy brings that client&apos;s database up to date by itself. Client
         websites are commercial, so they need a Vercel Pro plan, a project in the client&apos;s own Vercel account, or another host such as
         Netlify.
       </p>
