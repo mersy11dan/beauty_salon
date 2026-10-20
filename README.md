@@ -131,6 +131,6 @@ Every page reads from the database, so a deployment without one shows only the "
 - **Size limits.** Vercel accepts at most 4.5 MB per request. The admin shrinks photos below 4 MB before uploading, and the site file download streams, so it can be larger.
 - **Preview deployments** never delete photos from storage, because with preview branching they run on a copy of the live database but share the live Cloudinary account.
 
-`GET /api/health` returns 200 when the database answers. Each check wakes the database for about 5 minutes, so poll it about once an hour: at 0.25 CU that is roughly 15 compute-hours a month, while a 5-minute monitor keeps it awake around the clock and uses up Neon Free's month in under three weeks.
+`GET /api/health` returns 200 only when the database answers, has every migration and has an admin login. Otherwise it returns 503 naming the first missing piece, and the server log says how to fix it. Each check wakes the database for about 5 minutes, so poll it about once an hour: at 0.25 CU that is roughly 15 compute-hours a month, while a 5-minute monitor keeps it awake around the clock and uses up Neon Free's month in under three weeks.
 
 Behind a reverse proxy that rewrites the `Host` header, add the public domain to `serverActions.allowedOrigins` in `next.config.ts` so Server Actions accept requests from it.
