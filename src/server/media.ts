@@ -29,6 +29,9 @@ async function referencedUrls() {
 
 /** Deletes uploads that no page uses any more. Cheap to call; it runs at most hourly per server. */
 export async function pruneUnusedMedia({ force = false } = {}) {
+  // A preview deployment can run on a copy of the live database (Neon preview branching) while sharing the
+  // live photo storage, so a photo removed while testing there would also vanish from the live site.
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") return 0;
   if (!force && Date.now() - lastRun < MIN_INTERVAL_MS) return 0;
   lastRun = Date.now();
 
